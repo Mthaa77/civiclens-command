@@ -87,6 +87,12 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     [
+      "expo-location",
+      {
+        locationWhenInUsePermission: "Allow CivicLens to use your location while you use the app to identify your municipality and ward.",
+      },
+    ],
+    [
       "expo-audio",
       {
         microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
