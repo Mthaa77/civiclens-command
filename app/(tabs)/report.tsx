@@ -50,15 +50,15 @@ export default function ReportScreen() {
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28 }}>
-        <View className="flex-row items-center justify-between py-4"><View><Text className="text-2xl font-extrabold text-foreground">Report a problem</Text><Text className="mt-1 text-sm text-muted">A guided path from issue to follow-up.</Text></View><View className="h-10 w-10 items-center justify-center rounded-full bg-[#E9F2FF]"><MaterialIcons name="add-a-photo" size={20} color="#1769FF" /></View></View>
+        <View className="flex-row items-center justify-between py-4"><View><Text className="font-display text-2xl font-extrabold text-foreground">Start a civic report</Text><Text className="mt-1 text-sm text-muted">Turn what you see into a clear next step.</Text></View><View className="h-10 w-10 items-center justify-center rounded-full bg-[#E9F2FF]"><MaterialIcons name="add-a-photo" size={20} color="#1769FF" /></View></View>
 
         <View className="mb-5 flex-row items-center justify-between rounded-2xl border border-border bg-surface px-3 py-3">{steps.map((label, index) => <View key={label} className="items-center"><View className={index <= step ? "h-7 w-7 items-center justify-center rounded-full bg-primary" : "h-7 w-7 items-center justify-center rounded-full bg-[#E8EDF2]"}><Text className={index <= step ? "text-xs font-extrabold text-white" : "text-xs font-extrabold text-muted"}>{index + 1}</Text></View><Text className={index <= step ? "mt-1 text-[10px] font-extrabold text-primary" : "mt-1 text-[10px] font-semibold text-muted"}>{label}</Text></View>)}</View>
 
         {step === 0 ? <>
-          <SectionHeader eyebrow="Step 1 of 5" title="What is happening?" />
-          <Text className="mb-3 text-sm leading-5 text-muted">Start with what you can see. You do not need to know which department is responsible yet.</Text>
+          <SectionHeader eyebrow="Step 1 of 5" title="Start with what you can see" />
+          <Text className="mb-3 text-sm leading-5 text-muted">Describe the issue in plain language. We will help work out the likely route.</Text>
           <TextInput value={notes} onChangeText={setNotes} placeholder="Describe the problem in your own words" placeholderTextColor="#97A3AF" multiline className="min-h-[94px] rounded-2xl border border-border bg-surface px-4 py-3 text-sm leading-5 text-foreground" />
-          <Text className="mb-3 mt-6 text-sm font-extrabold text-foreground">Or choose a common civic problem</Text>
+          <Text className="mb-3 mt-6 text-sm font-extrabold text-foreground">Or choose a common issue</Text>
           <View className="gap-2">{issueCategories.slice(0, 8).map((item) => <Pressable key={item.id} onPress={() => setSelectedId(item.id)} style={({ pressed }) => pressed && { opacity: 0.72 }}><View className={item.id === selectedId ? "flex-row items-center gap-3 rounded-2xl border-2 border-primary bg-[#F2F7FF] p-3" : "flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-3"}><IconTile icon={item.icon} color={item.accent} size="small" /><View className="flex-1"><Text className="text-sm font-extrabold text-foreground">{item.label}</Text><Text className="mt-0.5 text-xs text-muted">{item.hint}</Text></View>{item.id === selectedId ? <MaterialIcons name="check-circle" size={22} color="#1769FF" /> : <MaterialIcons name="radio-button-unchecked" size={22} color="#C1CAD4" />}</View></Pressable>)}</View>
         </> : null}
 
