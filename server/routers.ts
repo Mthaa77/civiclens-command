@@ -16,6 +16,27 @@ export const appRouter = router({
       } as const;
     }),
   }),
+  civic: router({
+    status: publicProcedure.query(async () => {
+      const sources = [
+        { id: "treasury", label: "National Treasury Municipalities API", url: "https://municipaldata.treasury.gov.za/api/cubes/municipalities/members/municipality" },
+        { id: "mdb", label: "Municipal Demarcation Board · MDB Wards 2026", url: "https://services7.arcgis.com/oeoyTUJC8HEeYsRB/arcgis/rest/services/MDB_Wards_2026/FeatureServer/0" },
+      ];
+      const checks = await Promise.all(sources.map(async (source) => {
+        try {
+          const response = await fetch(source.url, { method: "GET", signal: AbortSignal.timeout(7000) });
+          return { ...source, status: response.ok ? "connected" as const : "degraded" as const, httpStatus: response.status };
+        } catch {
+          return { ...source, status: "offline" as const, httpStatus: null };
+        }
+      }));
+      return {
+        status: checks.every((source) => source.status === "connected") ? "connected" as const : "degraded" as const,
+        checkedAt: new Date().toISOString(),
+        sources: checks,
+      };
+    }),
+  }),
 
   // TODO: add feature routers here, e.g.
   // todo: router({

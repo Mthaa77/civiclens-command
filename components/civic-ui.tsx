@@ -1,8 +1,9 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import type { ComponentProps, ReactNode } from "react";
 
 import { useColors } from "@/hooks/use-colors";
+import { trpc } from "@/lib/trpc";
 
 export type IconName = ComponentProps<typeof MaterialIcons>["name"];
 
@@ -60,6 +61,13 @@ export function SourceBadge({ label = "Official", tone = "official" }: { label?:
   const bg = tone === "official" ? "bg-[#E8F7EE]" : tone === "civic" ? "bg-[#E9F2FF]" : tone === "community" ? "bg-[#FFF4D8]" : "bg-[#FDECEC]";
   const color = tone === "official" ? "#1C7A43" : tone === "civic" ? "#1769FF" : tone === "community" ? "#9A6B00" : "#B84444";
   return <View className={`self-start flex-row items-center gap-1 rounded-full px-2.5 py-1 ${bg}`}><View className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} /><Text style={{ color, fontFamily: "Inter_700Bold" }} className="text-[10px] uppercase tracking-[0.6px]">{label}</Text></View>;
+}
+
+export function CivicDataPulse({ compact = false }: { compact?: boolean }) {
+  const { data, isLoading } = trpc.civic.status.useQuery(undefined, { staleTime: 60_000, retry: 1 });
+  const connected = data?.status === "connected";
+  const label = compact ? (isLoading ? "Connecting" : connected ? "Connected" : "Offline") : (isLoading ? "Connecting civic data" : connected ? "Live civic data connected" : "Civic data needs attention");
+  return <View className={compact ? "flex-row items-center gap-2" : "flex-row items-center gap-2 rounded-2xl border border-[#CDE9D7] bg-[#F1F9F3] px-3 py-2.5"}><View className={compact ? "h-2 w-2 rounded-full" : "h-2.5 w-2.5 rounded-full"} style={{ backgroundColor: isLoading ? "#A96D00" : connected ? "#237A4B" : "#C94E4E" }} />{isLoading ? <ActivityIndicator size="small" color="#A96D00" /> : null}<Text style={{ fontFamily: "Inter_700Bold", color: connected ? "#237A4B" : isLoading ? "#A96D00" : "#C94E4E" }} className={compact ? "text-[10px] uppercase tracking-[0.7px]" : "text-xs"}>{label}</Text>{!compact && data?.sources ? <Text className="ml-auto text-[10px] text-muted">{data.sources.filter((source) => source.status === "connected").length}/{data.sources.length} sources</Text> : null}</View>;
 }
 
 export function InfoCard({ children, className = "" }: { children: ReactNode; className?: string }) {

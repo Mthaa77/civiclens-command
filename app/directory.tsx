@@ -5,7 +5,7 @@ import { ActivityIndicator, FlatList, Linking, Pressable, Text, TextInput, View 
 import { GpsLocationButton } from "@/components/gps-location-button";
 import { LocationPicker } from "@/components/location-picker";
 import { ScreenContainer } from "@/components/screen-container";
-import { SourceBadge } from "@/components/civic-ui";
+import { CivicDataPulse, SourceBadge } from "@/components/civic-ui";
 import { GOVERNMENT_DIRECTORY_URL, IEC_WARD_COUNCILLOR_LOOKUP_URL, TREASURY_SOURCE_LABEL, TREASURY_SOURCE_UPDATED, fetchOfficialMunicipalContacts, getWardCouncillorContact, getWardLookupFallback, getWardOfficeContact, type OfficialMunicipalContact } from "@/lib/official-directory";
 import { useCivic } from "@/lib/civic-store";
 
@@ -58,7 +58,7 @@ export default function DirectoryScreen() {
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
       <View className="flex-1">
-        <View className="flex-row items-start justify-between py-4"><View className="flex-1"><Text className="font-display text-2xl font-extrabold text-foreground">Official civic directory</Text><Text className="mt-1 text-sm leading-5 text-muted">Find the right municipal office, then call or visit its verified source.</Text></View><View className="ml-3 h-11 w-11 items-center justify-center rounded-2xl bg-[#E9F2FF]"><MaterialIcons name="verified" size={22} color="#1F5EFF" /></View></View>
+        <View className="flex-row items-start justify-between py-4"><View className="flex-1"><Text className="font-display text-2xl font-extrabold text-foreground">Official civic directory</Text><Text className="mt-1 text-sm leading-5 text-muted">Find the right municipal office, then call or visit its verified source.</Text><View className="mt-3"><CivicDataPulse compact /></View></View><View className="ml-3 h-11 w-11 items-center justify-center rounded-2xl bg-[#E9F2FF]"><MaterialIcons name="verified" size={22} color="#1F5EFF" /></View></View>
         <GpsLocationButton compact />
         <View className="mt-3"><LocationPicker value={selectedLocation} onChange={setSelectedLocation} /></View>
         <View className="mt-3 flex-row items-center gap-2 rounded-2xl border border-border bg-surface px-3"><MaterialIcons name="search" size={19} color="#7B8794" /><TextInput value={search} onChangeText={setSearch} placeholder="Search municipality or code" placeholderTextColor="#97A3AF" className="flex-1 py-3 text-sm text-foreground" /></View>

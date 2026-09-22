@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { FlatList, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { useEffect, useState } from "react";
 
-import { Chip, IconTile, InfoCard, SectionHeader, SourceBadge } from "@/components/civic-ui";
+import { Chip, CivicDataPulse, IconTile, InfoCard, SectionHeader, SourceBadge } from "@/components/civic-ui";
 import { LocationPicker } from "@/components/location-picker";
 import { GpsLocationButton } from "@/components/gps-location-button";
 import { ScreenContainer } from "@/components/screen-container";
@@ -25,7 +25,7 @@ export default function GovernmentScreen() {
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28 }}>
-        <View className="py-4"><Text className="font-display text-2xl font-extrabold text-foreground">My government</Text><Text className="mt-1 text-sm leading-5 text-muted">Turn your location into a clear civic profile.</Text></View>
+        <View className="flex-row items-end justify-between py-4"><View><Text className="font-display text-2xl font-extrabold text-foreground">My government</Text><Text className="mt-1 text-sm leading-5 text-muted">Turn your location into a clear civic profile.</Text></View><CivicDataPulse compact /></View>
 
         <LocationPicker value={selectedLocation} onChange={setSelectedLocation} />
         <View className="mt-3 flex-row items-center gap-2"><View className="flex-1"><GpsLocationButton compact /></View><Pressable onPress={() => router.push("/directory" as never)} style={({ pressed }) => pressed && { opacity: 0.7 }}><View className="flex-row items-center gap-2 rounded-full border border-border bg-surface px-3 py-2"><MaterialIcons name="contacts" size={16} color="#52677C" /><Text className="text-xs font-extrabold text-foreground">Directory</Text></View></Pressable></View>

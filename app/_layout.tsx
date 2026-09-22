@@ -20,8 +20,10 @@ import {
 
 import { CivicProvider } from "@/lib/civic-store";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { createTRPCClient, trpc } from "@/lib/trpc";
 
 const queryClient = new QueryClient();
+const trpcClient = createTRPCClient();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -39,15 +41,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <CivicProvider>
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="directory" />
-            </Stack>
-          </CivicProvider>
-        </ThemeProvider>
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <ThemeProvider>
+            <CivicProvider>
+              <StatusBar style="dark" />
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="directory" />
+              </Stack>
+            </CivicProvider>
+          </ThemeProvider>
+        </trpc.Provider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );
