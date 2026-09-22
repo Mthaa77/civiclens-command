@@ -4,11 +4,11 @@ import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 
 import { ActionButton, CivicMark, Chip, IconTile, InfoCard, SectionHeader, SourceBadge } from "@/components/civic-ui";
 import { ScreenContainer } from "@/components/screen-container";
-import { issueCategories, lessons, locationProfile, notices } from "@/lib/civic-data";
+import { issueCategories, lessons, notices } from "@/lib/civic-data";
 import { useCivic } from "@/lib/civic-store";
 
 export default function HomeScreen() {
-  const { cases } = useCivic();
+  const { cases, selectedLocation } = useCivic();
   const openCases = cases.filter((item) => !["Resolved", "Closed"].includes(item.status)).length;
   const go = (path: string) => router.push(path as never);
 
@@ -39,7 +39,7 @@ export default function HomeScreen() {
         </View>
 
         <View className="mt-7"><SectionHeader eyebrow="Your civic profile" title="The government around you" />
-          <InfoCard><View className="flex-row items-start justify-between"><View className="flex-1"><View className="flex-row items-center gap-2"><MaterialIcons name="location-on" size={18} color="#1769FF" /><Text className="text-sm font-extrabold text-foreground">{locationProfile.suburb}</Text></View><Text className="mt-2 text-lg font-extrabold text-foreground">{locationProfile.municipality}</Text><Text className="mt-1 text-sm text-muted">{locationProfile.province} · {locationProfile.municipalityType}</Text></View><View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#E9F2FF]"><MaterialIcons name="my-location" size={28} color="#1769FF" /></View></View><View className="mt-4 flex-row items-center justify-between border-t border-border pt-3"><Text className="text-xs font-semibold text-muted">{locationProfile.ward}</Text><Pressable onPress={() => go("/(tabs)/government")}><Text className="text-xs font-extrabold text-primary">View profile →</Text></Pressable></View></InfoCard>
+          <InfoCard><View className="flex-row items-start justify-between"><View className="flex-1"><View className="flex-row items-center gap-2"><MaterialIcons name="location-on" size={18} color="#1769FF" /><Text className="text-sm font-extrabold text-foreground">{selectedLocation.wardNumber ? `Ward ${selectedLocation.wardNumber}` : "Ward not selected"}</Text></View><Text className="mt-2 text-lg font-extrabold text-foreground">{selectedLocation.name}</Text><Text className="mt-1 text-sm text-muted">{selectedLocation.province} · {selectedLocation.district}</Text></View><View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#E9F2FF]"><MaterialIcons name="my-location" size={28} color="#1769FF" /></View></View><View className="mt-4 flex-row items-center justify-between border-t border-border pt-3"><Text className="text-xs font-semibold text-muted">{selectedLocation.wardNumber ? `MDB 2026 ward ${selectedLocation.wardNumber}` : "Choose a ward for more precise routing"}</Text><Pressable onPress={() => go("/(tabs)/government")}><Text className="text-xs font-extrabold text-primary">Edit profile →</Text></Pressable></View></InfoCard>
         </View>
 
         <View className="mt-7"><SectionHeader eyebrow="Near you" title="A better read on your area" action="Open map" onAction={() => go("/(tabs)/community")} />

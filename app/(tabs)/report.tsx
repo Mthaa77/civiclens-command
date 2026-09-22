@@ -11,11 +11,11 @@ import { useCivic } from "@/lib/civic-store";
 const steps = ["Issue", "Location", "Evidence", "Report", "Save"];
 
 export default function ReportScreen() {
-  const { addCase } = useCivic();
+  const { addCase, selectedLocation } = useCivic();
   const [step, setStep] = useState(0);
   const [selectedId, setSelectedId] = useState("streetlight");
   const [notes, setNotes] = useState("");
-  const [location, setLocation] = useState("Soshanguve, Gauteng");
+  const [location, setLocation] = useState(`${selectedLocation.name}, ${selectedLocation.province}`);
   const [landmark, setLandmark] = useState("");
   const [reference, setReference] = useState("");
   const [evidenceAdded, setEvidenceAdded] = useState(false);
@@ -29,8 +29,8 @@ export default function ReportScreen() {
     const created = addCase({
       issueType: category.id,
       title: `${category.label} reported near ${landmark || location}`,
-      municipality: "City of Tshwane",
-      ward: "Ward not resolved",
+      municipality: selectedLocation.name,
+      ward: selectedLocation.wardNumber ? `Ward ${selectedLocation.wardNumber}` : "Ward not selected",
       status: reference.trim() ? "Government reference recorded" : "Ready to report",
       statusTone: reference.trim() ? "success" : "warning",
       createdAt: todayLabel(),
@@ -82,16 +82,16 @@ export default function ReportScreen() {
         {step === 3 ? <>
           <SectionHeader eyebrow="Step 4 of 5" title="Who is likely responsible?" />
           <Text className="mb-4 text-sm leading-5 text-muted">Based on your issue and location, the first documented route is municipal service support.</Text>
-          <InfoCard><View className="flex-row items-start gap-3"><IconTile icon="account-balance" color="#1769FF" /><View className="flex-1"><SourceBadge label="Likely responsible body" tone="official" /><Text className="mt-3 text-lg font-extrabold text-foreground">City of Tshwane</Text><Text className="mt-1 text-sm leading-5 text-muted">{category.label} is normally handled at municipal level in your area. The municipality can route the case to the relevant service team.</Text></View></View><View className="mt-4 border-t border-border pt-3"><Text className="text-xs leading-4 text-muted">CivicLens does not replace the official municipal process. Use the current official channel and save the reference number.</Text></View></InfoCard>
+          <InfoCard><View className="flex-row items-start gap-3"><IconTile icon="account-balance" color="#1769FF" /><View className="flex-1"><SourceBadge label="Likely responsible body" tone="official" /><Text className="mt-3 text-lg font-extrabold text-foreground">{selectedLocation.name}</Text><Text className="mt-1 text-sm leading-5 text-muted">{category.label} is normally handled at municipal level in {selectedLocation.province}. The municipality can route the case to the relevant service team.</Text></View></View><View className="mt-4 border-t border-border pt-3"><Text className="text-xs leading-4 text-muted">CivicLens does not replace the official municipal process. Use the current official channel and save the reference number.</Text></View></InfoCard>
           <Text className="mb-2 mt-6 text-sm font-extrabold text-foreground">Verified reporting options</Text>
-          {governmentContacts.slice(0, 2).map((contact) => <Pressable key={contact.value} onPress={() => Linking.openURL(`tel:${contact.value.replaceAll(" ", "")}`)} style={({ pressed }) => pressed && { opacity: 0.72 }}><View className="mb-2 flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-3"><IconTile icon={contact.icon} color="#27AE60" size="small" /><View className="flex-1"><Text className="text-sm font-extrabold text-foreground">{contact.label}</Text><Text className="mt-1 text-xs text-muted">{contact.value} · {contact.helper}</Text></View><MaterialIcons name="call" size={18} color="#27AE60" /></View></Pressable>)}
+          {selectedLocation.code === "TSH" ? governmentContacts.slice(0, 2).map((contact) => <Pressable key={contact.value} onPress={() => Linking.openURL(`tel:${contact.value.replaceAll(" ", "")}`)} style={({ pressed }) => pressed && { opacity: 0.72 }}><View className="mb-2 flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-3"><IconTile icon={contact.icon} color="#27AE60" size="small" /><View className="flex-1"><Text className="text-sm font-extrabold text-foreground">{contact.label}</Text><Text className="mt-1 text-xs text-muted">{contact.value} · {contact.helper}</Text></View><MaterialIcons name="call" size={18} color="#27AE60" /></View></Pressable>) : <Pressable onPress={() => Linking.openURL("https://www.gov.za/about-government/contact-directory")}><View className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-4"><IconTile icon="public" color="#1769FF" size="small" /><View className="flex-1"><Text className="text-sm font-extrabold text-foreground">Find the official local contact</Text><Text className="mt-1 text-xs leading-4 text-muted">Open the South African Government contact directory for {selectedLocation.name}.</Text></View><MaterialIcons name="open-in-new" size={18} color="#1769FF" /></View></Pressable>}
           <View className="mt-4 flex-row flex-wrap gap-2"><Chip label="Official source" tone="success" /><Chip label="Last checked 22 Sep 2026" tone="info" /></View>
         </> : null}
 
         {step === 4 && !savedId ? <>
           <SectionHeader eyebrow="Step 5 of 5" title="Save your private case" />
           <Text className="mb-4 text-sm leading-5 text-muted">A CivicLens case helps you keep the timeline, evidence and next step together.</Text>
-          <InfoCard><View className="flex-row items-start gap-3"><IconTile icon="folder-special" color="#1769FF" /><View className="flex-1"><Text className="text-base font-extrabold text-foreground">{category.label} near {landmark || location}</Text><Text className="mt-1 text-sm text-muted">City of Tshwane · Private case</Text></View></View><View className="mt-4 border-t border-border pt-3"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Government reference number</Text><TextInput value={reference} onChangeText={setReference} placeholder="Add after you report (optional now)" placeholderTextColor="#97A3AF" className="mt-2 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground" /></View></InfoCard>
+          <InfoCard><View className="flex-row items-start gap-3"><IconTile icon="folder-special" color="#1769FF" /><View className="flex-1"><Text className="text-base font-extrabold text-foreground">{category.label} near {landmark || location}</Text><Text className="mt-1 text-sm text-muted">{selectedLocation.name}{selectedLocation.wardNumber ? ` · Ward ${selectedLocation.wardNumber}` : ""} · Private case</Text></View></View><View className="mt-4 border-t border-border pt-3"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Government reference number</Text><TextInput value={reference} onChangeText={setReference} placeholder="Add after you report (optional now)" placeholderTextColor="#97A3AF" className="mt-2 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground" /></View></InfoCard>
           <View className="mt-4 rounded-2xl bg-[#F1F7F3] p-4"><View className="flex-row gap-2"><MaterialIcons name="check-circle" size={18} color="#27AE60" /><Text className="flex-1 text-xs leading-4 text-[#23613B]">You can set a follow-up reminder later. Any reminder is a planning aid, not a legal deadline.</Text></View></View>
           <View className="mt-6"><ActionButton label="Save case privately" icon="lock" onPress={saveCase} /></View>
         </> : null}
@@ -99,7 +99,7 @@ export default function ReportScreen() {
         {savedId ? <View className="items-center rounded-[28px] border border-[#CDE9D7] bg-[#F1F9F3] px-5 py-8"><View className="h-16 w-16 items-center justify-center rounded-full bg-[#D9F2E1]"><MaterialIcons name="check" size={34} color="#27AE60" /></View><Text className="mt-4 text-center text-2xl font-extrabold text-foreground">Case saved</Text><Text className="mt-2 text-center text-sm leading-5 text-muted">Your private CivicLens case {savedId} is ready for follow-up.</Text><View className="mt-5 w-full rounded-2xl bg-white/70 p-4"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Next documented step</Text><Text className="mt-2 text-sm font-extrabold text-foreground">Report through the official municipal channel, then add the reference number here.</Text></View><View className="mt-5 w-full gap-2"><ActionButton label="View my cases" icon="folder-open" onPress={() => router.push("/(tabs)/cases" as never)} /><ActionButton label="Start another report" icon="add" variant="secondary" onPress={() => { setSavedId(null); setStep(0); setReference(""); setNotes(""); }} /></View></View> : null}
 
         {!savedId ? <View className="mt-7 flex-row justify-between"><Pressable disabled={step === 0} onPress={back} style={({ pressed }) => pressed && { opacity: 0.6 }}><Text className={step === 0 ? "text-sm font-bold text-[#C5CBD2]" : "text-sm font-bold text-muted"}>← Back</Text></Pressable>{step < 4 ? <ActionButton label={step === 3 ? "Review case" : "Continue"} icon="arrow-forward" onPress={next} /> : null}</View> : null}
-        <View className="mt-6 flex-row items-center gap-2"><MaterialIcons name="verified-user" size={15} color="#1769FF" /><Text className="text-[11px] leading-4 text-muted">Sources used: City of Tshwane official contact guidance · reviewed 22 Sep 2026</Text></View>
+        <View className="mt-6 flex-row items-center gap-2"><MaterialIcons name="verified-user" size={15} color="#1769FF" /><Text className="text-[11px] leading-4 text-muted">Sources used: MDB Wards 2026 · reviewed {todayLabel()}</Text></View>
       </ScrollView>
     </ScreenContainer>
   );
