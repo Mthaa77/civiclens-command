@@ -21,4 +21,13 @@ describe("connected civic backend", () => {
     expect(result.status).toBe("degraded");
     expect(result.sources.every((source) => source.status === "offline")).toBe(true);
   });
+
+  it("returns a source-aware service pulse for water, electricity, roads, and refuse", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200 }));
+    const caller = appRouter.createCaller({ req: {} as never, res: {} as never, user: null });
+    const result = await caller.civic.servicePulse();
+    expect(result.feeds.map((feed) => feed.id)).toEqual(["water", "electricity", "roads", "refuse"]);
+    expect(result.sourceChecks).toHaveLength(3);
+    expect(result.sourceReachable).toBe(true);
+  });
 });
