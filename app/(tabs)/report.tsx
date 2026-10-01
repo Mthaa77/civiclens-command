@@ -11,7 +11,7 @@ import { useCivic } from "@/lib/civic-store";
 const steps = ["Issue", "Location", "Evidence", "Report", "Save"];
 
 export default function ReportScreen() {
-  const { addCase, selectedLocation } = useCivic();
+  const { syncCaseToCloud, selectedLocation } = useCivic();
   const [step, setStep] = useState(0);
   const [selectedId, setSelectedId] = useState("streetlight");
   const [notes, setNotes] = useState("");
@@ -25,8 +25,8 @@ export default function ReportScreen() {
   const next = () => setStep((current) => Math.min(current + 1, steps.length - 1));
   const back = () => setStep((current) => Math.max(current - 1, 0));
 
-  const saveCase = () => {
-    const created = addCase({
+  const saveCase = async () => {
+    const created = await syncCaseToCloud({
       issueType: category.id,
       title: `${category.label} reported near ${landmark || location}`,
       municipality: selectedLocation.name,
@@ -93,10 +93,10 @@ export default function ReportScreen() {
           <Text className="mb-4 text-sm leading-5 text-muted">A CivicLens case helps you keep the timeline, evidence and next step together.</Text>
           <InfoCard><View className="flex-row items-start gap-3"><IconTile icon="folder-special" color="#1769FF" /><View className="flex-1"><Text className="text-base font-extrabold text-foreground">{category.label} near {landmark || location}</Text><Text className="mt-1 text-sm text-muted">{selectedLocation.name}{selectedLocation.wardNumber ? ` · Ward ${selectedLocation.wardNumber}` : ""} · Private case</Text></View></View><View className="mt-4 border-t border-border pt-3"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Government reference number</Text><TextInput value={reference} onChangeText={setReference} placeholder="Add after you report (optional now)" placeholderTextColor="#97A3AF" className="mt-2 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground" /></View></InfoCard>
           <View className="mt-4 rounded-2xl bg-[#F1F7F3] p-4"><View className="flex-row gap-2"><MaterialIcons name="check-circle" size={18} color="#27AE60" /><Text className="flex-1 text-xs leading-4 text-[#23613B]">You can set a follow-up reminder later. Any reminder is a planning aid, not a legal deadline.</Text></View></View>
-          <View className="mt-6"><ActionButton label="Save case privately" icon="lock" onPress={saveCase} /></View>
+          <View className="mt-6"><ActionButton label="Save case privately" icon="lock" onPress={() => { void saveCase(); }} /></View>
         </> : null}
 
-        {savedId ? <View className="items-center rounded-[28px] border border-[#CDE9D7] bg-[#F1F9F3] px-5 py-8"><View className="h-16 w-16 items-center justify-center rounded-full bg-[#D9F2E1]"><MaterialIcons name="check" size={34} color="#27AE60" /></View><Text className="mt-4 text-center text-2xl font-extrabold text-foreground">Case saved</Text><Text className="mt-2 text-center text-sm leading-5 text-muted">Your private CivicLens case {savedId} is ready for follow-up.</Text><View className="mt-5 w-full rounded-2xl bg-white/70 p-4"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Next documented step</Text><Text className="mt-2 text-sm font-extrabold text-foreground">Report through the official municipal channel, then add the reference number here.</Text></View><View className="mt-5 w-full gap-2"><ActionButton label="View my cases" icon="folder-open" onPress={() => router.push("/(tabs)/cases" as never)} /><ActionButton label="Start another report" icon="add" variant="secondary" onPress={() => { setSavedId(null); setStep(0); setReference(""); setNotes(""); }} /></View></View> : null}
+        {savedId ? <View className="items-center rounded-[28px] border border-[#CDE9D7] bg-[#F1F9F3] px-5 py-8"><View className="h-16 w-16 items-center justify-center rounded-full bg-[#D9F2E1]"><MaterialIcons name="check" size={34} color="#27AE60" /></View><Text className="mt-4 text-center text-2xl font-extrabold text-foreground">Case saved</Text><Text className="mt-2 text-center text-sm leading-5 text-muted">Your private CivicLens case {savedId} is stored in CivicLens Cloud for this browser/device and ready for follow-up.</Text><View className="mt-5 w-full rounded-2xl bg-white/70 p-4"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Next documented step</Text><Text className="mt-2 text-sm font-extrabold text-foreground">Report through the official municipal channel, then add the reference number here.</Text></View><View className="mt-5 w-full gap-2"><ActionButton label="View my cases" icon="folder-open" onPress={() => router.push("/(tabs)/cases" as never)} /><ActionButton label="Start another report" icon="add" variant="secondary" onPress={() => { setSavedId(null); setStep(0); setReference(""); setNotes(""); }} /></View></View> : null}
 
         {!savedId ? <View className="mt-7 flex-row justify-between"><Pressable disabled={step === 0} onPress={back} style={({ pressed }) => pressed && { opacity: 0.6 }}><Text className={step === 0 ? "text-sm font-bold text-[#C5CBD2]" : "text-sm font-bold text-muted"}>← Back</Text></Pressable>{step < 4 ? <ActionButton label={step === 3 ? "Review case" : "Continue"} icon="arrow-forward" onPress={next} /> : null}</View> : null}
         <View className="mt-6 flex-row items-center gap-2"><MaterialIcons name="verified-user" size={15} color="#1769FF" /><Text className="text-[11px] leading-4 text-muted">Sources used: MDB Wards 2026 · reviewed {todayLabel()}</Text></View>
