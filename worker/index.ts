@@ -74,10 +74,10 @@ const connectedInsights = [
   { id: "equity", title: "Equity lens", description: "Surface where service information and access to official channels may differ across communities." },
 ];
 
-async function listReports(db: D1Database) {
+async function listReports(db: D1Database, ownerToken: string) {
   const result = await db.prepare(
-    "SELECT id, service, municipality, ward, title, description, status, created_at FROM civic_reports ORDER BY created_at DESC LIMIT 50"
-  ).all();
+    "SELECT id, service, municipality, ward, title, description, status, created_at FROM civic_reports WHERE owner_token = ? ORDER BY created_at DESC LIMIT 50"
+  ).bind(ownerToken).all();
   return result.results;
 }
 
@@ -90,16 +90,17 @@ async function createReport(request: Request, db: D1Database) {
   const ward = typeof body.ward === "string" ? body.ward.trim().slice(0, 40) : "";
   const title = typeof body.title === "string" ? body.title.trim().slice(0, 160) : "";
   const description = typeof body.description === "string" ? body.description.trim().slice(0, 2000) : "";
+  const ownerToken = typeof body.ownerToken === "string" ? body.ownerToken.trim().slice(0, 128) : "";
 
-  if (!service || !municipality || !title || !description) {
-    return json({ error: "service, municipality, title and description are required" }, { status: 400 });
+  if (!service || !municipality || !title || !description || !ownerToken) {
+    return json({ error: "service, municipality, title, description and ownerToken are required" }, { status: 400 });
   }
 
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
   await db.prepare(
-    "INSERT INTO civic_reports (id, service, municipality, ward, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-  ).bind(id, service, municipality, ward || null, title, description, "submitted", createdAt).run();
+    "INSERT INTO civic_reports (id, service, municipality, ward, title, description, status, created_at, owner_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  ).bind(id, service, municipality, ward || null, title, description, "submitted", createdAt, ownerToken).run();
 
   return json({ id, status: "submitted", createdAt }, { status: 201 });
 }
@@ -141,7 +142,11 @@ export default {
     if (url.pathname === "/api/civic/status") return json(await civicStatus());
     if (url.pathname === "/api/civic/service-pulse") return json(await servicePulse());
     if (url.pathname === "/api/civic/insights") return json({ generatedAt: new Date().toISOString(), insights: connectedInsights });
-    if (url.pathname === "/api/civic/reports" && request.method === "GET") return json({ reports: await listReports(env.DB) });
+    if (url.pathname === "/api/civic/reports" && request.method === "GET") {
+      const ownerToken = url.searchParams.get("ownerToken")?.trim().slice(0, 128) || "";
+      if (!ownerToken) return json({ error: "ownerToken is required" }, { status: 400 });
+      return json({ reports: await listReports(env.DB, ownerToken) });
+    }
     if (url.pathname === "/api/civic/reports" && request.method === "POST") return createReport(request, env.DB);
     if (env.ASSETS) return env.ASSETS.fetch(request);
     return json({ error: "Not found" }, { status: 404 });
