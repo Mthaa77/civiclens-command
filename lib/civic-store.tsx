@@ -6,6 +6,8 @@ import type { DirectorySelection } from "@/lib/municipal-directory";
 
 const STORAGE_KEY = "civiclens.cases.v1";
 const LOCATION_STORAGE_KEY = "civiclens.location.v1";
+const OWNER_TOKEN_STORAGE_KEY = "civiclens.owner-token.v1";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://civiclens-api.tshepisokadiaka83.workers.dev";
 
 export const defaultLocation: DirectorySelection = {
   code: "TSH",
@@ -22,6 +24,7 @@ type CivicStoreValue = {
   setSelectedLocation: (location: DirectorySelection) => void;
   addCase: (civicCase: Omit<CivicCase, "id">) => CivicCase;
   updateCase: (id: string, patch: Partial<CivicCase>) => void;
+  syncCaseToCloud: (civicCase: Omit<CivicCase, "id">) => Promise<CivicCase>;
 };
 
 const CivicStoreContext = createContext<CivicStoreValue | null>(null);
@@ -29,8 +32,14 @@ const CivicStoreContext = createContext<CivicStoreValue | null>(null);
 export function CivicProvider({ children }: { children: ReactNode }) {
   const [cases, setCases] = useState<CivicCase[]>(initialCases);
   const [selectedLocation, setSelectedLocation] = useState<DirectorySelection>(defaultLocation);
+  const [ownerToken, setOwnerToken] = useState<string | null>(null);
 
   useEffect(() => {
+    AsyncStorage.getItem(OWNER_TOKEN_STORAGE_KEY).then(async (value) => {
+      const token = value || crypto.randomUUID();
+      if (!value) await AsyncStorage.setItem(OWNER_TOKEN_STORAGE_KEY, token);
+      setOwnerToken(token);
+    });
     AsyncStorage.getItem(STORAGE_KEY).then((value) => {
       if (!value) return;
       try {
@@ -69,7 +78,19 @@ export function CivicProvider({ children }: { children: ReactNode }) {
       return created;
     },
     updateCase: (id, patch) => setCases((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item)),
-  }), [cases, selectedLocation]);
+    syncCaseToCloud: async (civicCase) => {
+      if (!ownerToken) throw new Error("Private case storage is still initializing");
+      const response = await fetch(`${API_BASE_URL}/api/civic/reports`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerToken, service: civicCase.issueType, municipality: civicCase.municipality, ward: civicCase.ward, title: civicCase.title, description: civicCase.events?.[0]?.detail || civicCase.title }),
+      });
+      if (!response.ok) throw new Error("Could not save the case to CivicLens Cloud");
+      const remote = await response.json() as { id: string; status: string; createdAt: string };
+      const created = { ...civicCase, id: remote.id, status: remote.status, createdAt: remote.createdAt };
+      setCases((current) => [created, ...current]);
+      return created;
+    },
+  }), [cases, selectedLocation, ownerToken]);
 
   return <CivicStoreContext.Provider value={value}>{children}</CivicStoreContext.Provider>;
 }
