@@ -25,6 +25,7 @@ type CivicStoreValue = {
   addCase: (civicCase: Omit<CivicCase, "id">) => CivicCase;
   updateCase: (id: string, patch: Partial<CivicCase>) => void;
   syncCaseToCloud: (civicCase: Omit<CivicCase, "id">) => Promise<CivicCase>;
+  updateCaseInCloud: (id: string, patch: { status: string; detail?: string; reference?: string }) => Promise<void>;
 };
 
 const CivicStoreContext = createContext<CivicStoreValue | null>(null);
@@ -94,9 +95,16 @@ export function CivicProvider({ children }: { children: ReactNode }) {
               evidenceCount: 0,
               location: report.municipality + " · private location",
               visibility: "Private",
-              events: [
-                { date: shortDate, label: "Case saved to CivicLens Cloud", detail: report.description || "Issue details saved privately" },
-              ],
+              events: (report.events?.length ? report.events : [{
+                event_type: report.status,
+                label: "Case saved to CivicLens Cloud",
+                detail: report.description || "Issue details saved privately",
+                created_at: report.created_at,
+              }]).map((event) => ({
+                date: new Intl.DateTimeFormat("en-ZA", { day: "2-digit", month: "short" }).format(new Date(event.created_at)),
+                label: event.label,
+                detail: event.detail || undefined,
+              })),
             };
           });
           const cloudIds = new Set(cloudCases.map((item) => item.id));
@@ -143,6 +151,27 @@ export function CivicProvider({ children }: { children: ReactNode }) {
       const created = { ...civicCase, id: remote.id, status: remote.status, createdAt: remote.createdAt };
       setCases((current) => [created, ...current]);
       return created;
+    },
+    updateCaseInCloud: async (id, patch) => {
+      if (!ownerToken) throw new Error("Private case storage is still initializing");
+      const response = await fetch(`${API_BASE_URL}/api/civic/reports/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerToken, ...patch }),
+      });
+      if (!response.ok) throw new Error("Could not update the case in CivicLens Cloud");
+      const result = await response.json() as { status: string; event: { createdAt: string; label: string; detail?: string | null } };
+      setCases((current) => current.map((item) => item.id === id ? {
+        ...item,
+        status: result.status,
+        statusTone: result.status === "resolved" || result.status === "closed" ? "success" : "info",
+        reference: patch.reference || item.reference,
+        events: [...item.events, {
+          date: new Intl.DateTimeFormat("en-ZA", { day: "2-digit", month: "short" }).format(new Date(result.event.createdAt)),
+          label: result.event.label,
+          detail: result.event.detail || undefined,
+        }],
+      } : item));
     },
   }), [cases, selectedLocation, ownerToken]);
 
