@@ -168,7 +168,7 @@ async function updateReport(request: Request, db: D1Database, reportId: string) 
     ? "Case marked resolved by you"
     : status === "closed"
       ? "Case closed"
-      : \`Case status updated to \${statusLabel(status)}\`;
+      : `Case status updated to ${statusLabel(status)}`;
   const event = await addCaseEvent(db, reportId, status, label, detail || null, "user", now);
 
   return json({ id: reportId, previousStatus: existing.status, status, updatedAt: now, event });
