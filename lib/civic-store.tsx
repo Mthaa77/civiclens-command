@@ -7,7 +7,7 @@ import type { DirectorySelection } from "@/lib/municipal-directory";
 const STORAGE_KEY = "civiclens.cases.v1";
 const LOCATION_STORAGE_KEY = "civiclens.location.v1";
 const OWNER_TOKEN_STORAGE_KEY = "civiclens.owner-token.v1";
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://civiclens-api.tshepisokadiaka83.workers.dev";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://civiclens-command.tshepisokadiaka83.workers.dev";
 
 export const defaultLocation: DirectorySelection = {
   code: "TSH",
@@ -45,18 +45,14 @@ export function CivicProvider({ children }: { children: ReactNode }) {
       try {
         const parsed = JSON.parse(value) as CivicCase[];
         if (Array.isArray(parsed)) setCases(parsed);
-      } catch {
-        // Keep the local demo data if saved data is unavailable or malformed.
-      }
+      } catch {}
     });
     AsyncStorage.getItem(LOCATION_STORAGE_KEY).then((value) => {
       if (!value) return;
       try {
         const parsed = JSON.parse(value) as DirectorySelection;
         if (parsed?.code && parsed?.name) setSelectedLocation(parsed);
-      } catch {
-        // Keep the launch location if saved location data is unavailable or malformed.
-      }
+      } catch {}
     });
   }, []);
 
@@ -81,8 +77,16 @@ export function CivicProvider({ children }: { children: ReactNode }) {
     syncCaseToCloud: async (civicCase) => {
       if (!ownerToken) throw new Error("Private case storage is still initializing");
       const response = await fetch(`${API_BASE_URL}/api/civic/reports`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ownerToken, service: civicCase.issueType, municipality: civicCase.municipality, ward: civicCase.ward, title: civicCase.title, description: civicCase.events?.[0]?.detail || civicCase.title }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ownerToken,
+          service: civicCase.issueType,
+          municipality: civicCase.municipality,
+          ward: civicCase.ward,
+          title: civicCase.title,
+          description: civicCase.events?.[0]?.detail || civicCase.title,
+        }),
       });
       if (!response.ok) throw new Error("Could not save the case to CivicLens Cloud");
       const remote = await response.json() as { id: string; status: string; createdAt: string };
