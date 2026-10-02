@@ -4,7 +4,7 @@ const SERVICE_SOURCE_URL = "https://www.tshwane.gov.za/";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS,PATCH",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Max-Age": "86400",
 };
@@ -74,11 +74,44 @@ const connectedInsights = [
   { id: "equity", title: "Equity lens", description: "Surface where service information and access to official channels may differ across communities." },
 ];
 
+const CASE_STATUSES = [
+  "draft",
+  "submitted",
+  "validated",
+  "routed",
+  "acknowledged",
+  "in_progress",
+  "awaiting_authority",
+  "awaiting_user",
+  "resolved",
+  "closed",
+] as const;
+
+function statusLabel(status: string) {
+  return status.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+async function addCaseEvent(db: D1Database, reportId: string, eventType: string, label: string, detail: string | null, actor = "civiclens", createdAt = new Date().toISOString()) {
+  const id = crypto.randomUUID();
+  await db.prepare(
+    "INSERT INTO civic_report_events (id, report_id, event_type, label, detail, actor, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).bind(id, reportId, eventType, label, detail, actor, createdAt).run();
+  return { id, eventType, label, detail, actor, createdAt };
+}
+
 async function listReports(db: D1Database, ownerToken: string) {
   const result = await db.prepare(
     "SELECT id, service, municipality, ward, title, description, status, created_at FROM civic_reports WHERE owner_token = ? ORDER BY created_at DESC LIMIT 50"
   ).bind(ownerToken).all();
-  return result.results;
+
+  const reports = [];
+  for (const report of result.results as Array<Record<string, unknown>>) {
+    const events = await db.prepare(
+      "SELECT id, event_type, label, detail, actor, created_at FROM civic_report_events WHERE report_id = ? ORDER BY created_at ASC"
+    ).bind(report.id).all();
+    reports.push({ ...report, events: events.results });
+  }
+  return reports;
 }
 
 async function createReport(request: Request, db: D1Database) {
@@ -101,8 +134,44 @@ async function createReport(request: Request, db: D1Database) {
   await db.prepare(
     "INSERT INTO civic_reports (id, service, municipality, ward, title, description, status, created_at, owner_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
   ).bind(id, service, municipality, ward || null, title, description, "submitted", createdAt, ownerToken).run();
+  const event = await addCaseEvent(db, id, "submitted", "CivicLens received your report", "The case was saved privately in CivicLens Cloud.", "civiclens", createdAt);
 
-  return json({ id, status: "submitted", createdAt }, { status: 201 });
+  return json({ id, status: "submitted", createdAt, events: [event] }, { status: 201 });
+}
+
+async function updateReport(request: Request, db: D1Database, reportId: string) {
+  let body: Record<string, unknown>;
+  try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, { status: 400 }); }
+
+  const ownerToken = typeof body.ownerToken === "string" ? body.ownerToken.trim().slice(0, 128) : "";
+  const status = typeof body.status === "string" ? body.status.trim() : "";
+  const detail = typeof body.detail === "string" ? body.detail.trim().slice(0, 1000) : "";
+  const reference = typeof body.reference === "string" ? body.reference.trim().slice(0, 120) : "";
+
+  if (!ownerToken || !status || !CASE_STATUSES.includes(status as typeof CASE_STATUSES[number])) {
+    return json({ error: "ownerToken and a valid case status are required" }, { status: 400 });
+  }
+
+  const existing = await db.prepare(
+    "SELECT id, status FROM civic_reports WHERE id = ? AND owner_token = ? LIMIT 1"
+  ).bind(reportId, ownerToken).first<{ id: string; status: string }>();
+  if (!existing) return json({ error: "Case not found" }, { status: 404 });
+
+  const now = new Date().toISOString();
+  await db.prepare("UPDATE civic_reports SET status = ? WHERE id = ? AND owner_token = ?").bind(status, reportId, ownerToken).run();
+
+  if (reference) {
+    await addCaseEvent(db, reportId, "government_reference", "Government reference number added", reference, "user", now);
+  }
+
+  const label = status === "resolved"
+    ? "Case marked resolved by you"
+    : status === "closed"
+      ? "Case closed"
+      : \`Case status updated to \${statusLabel(status)}\`;
+  const event = await addCaseEvent(db, reportId, status, label, detail || null, "user", now);
+
+  return json({ id: reportId, previousStatus: existing.status, status, updatedAt: now, event });
 }
 
 async function tRPC(path: string, db: D1Database) {
@@ -148,6 +217,8 @@ export default {
       return json({ reports: await listReports(env.DB, ownerToken) });
     }
     if (url.pathname === "/api/civic/reports" && request.method === "POST") return createReport(request, env.DB);
+    const reportMatch = url.pathname.match(/^\/api\/civic\/reports\/([^/]+)$/);
+    if (reportMatch && request.method === "PATCH") return updateReport(request, env.DB, reportMatch[1]);
     if (env.ASSETS) return env.ASSETS.fetch(request);
     return json({ error: "Not found" }, { status: 404 });
   },
