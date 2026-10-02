@@ -57,6 +57,56 @@ export function CivicProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!ownerToken) return;
+    fetch(API_BASE_URL + "/api/civic/reports?ownerToken=" + encodeURIComponent(ownerToken))
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Could not load cloud cases");
+        return await response.json() as { reports: Array<{
+          id: string;
+          service: string;
+          municipality: string;
+          ward: string | null;
+          title: string;
+          description: string;
+          status: string;
+          created_at: string;
+        }> };
+      })
+      .then(({ reports }) => {
+        setCases((current) => {
+          const localById = new Map(current.map((item) => [item.id, item]));
+          const cloudCases: CivicCase[] = reports.map((report) => {
+            const existing = localById.get(report.id);
+            if (existing) return existing;
+            const date = new Date(report.created_at);
+            const dateLabel = new Intl.DateTimeFormat("en-ZA", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+            const shortDate = new Intl.DateTimeFormat("en-ZA", { day: "2-digit", month: "short" }).format(date);
+            return {
+              id: report.id,
+              issueType: report.service,
+              title: report.title,
+              municipality: report.municipality,
+              ward: report.ward || "Ward not selected",
+              status: report.status === "submitted" ? "Submitted to CivicLens Cloud" : report.status,
+              statusTone: report.status === "submitted" ? "info" : "warning",
+              createdAt: dateLabel,
+              reference: "Not added yet",
+              evidenceCount: 0,
+              location: report.municipality + " · private location",
+              visibility: "Private",
+              events: [
+                { date: shortDate, label: "Case saved to CivicLens Cloud", detail: report.description || "Issue details saved privately" },
+              ],
+            };
+          });
+          const cloudIds = new Set(cloudCases.map((item) => item.id));
+          return [...cloudCases, ...current.filter((item) => !cloudIds.has(item.id))];
+        });
+      })
+      .catch(() => undefined);
+  }, [ownerToken]);
+
+  useEffect(() => {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(cases)).catch(() => undefined);
   }, [cases]);
 
