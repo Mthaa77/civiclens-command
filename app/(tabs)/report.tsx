@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Image } from "expo-image";
 import { Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
-import { ActionButton, Chip, IconTile, InfoCard, SectionHeader, SourceBadge } from "@/components/civic-ui";
+import { ActionButton, Chip, IconTile, InfoCard, SectionHeader, SourceBadge, SyncBadge, TrustStrip } from "@/components/civic-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { categoryById, governmentContacts, issueCategories, todayLabel } from "@/lib/civic-data";
 import { useCivic } from "@/lib/civic-store";
@@ -66,12 +66,19 @@ export default function ReportScreen() {
     setEvidenceError(null);
   };
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const category = useMemo(() => categoryById(selectedId), [selectedId]);
 
-  const next = () => setStep((current) => Math.min(current + 1, steps.length - 1));
+  const next = () => {
+    if (step === 0 && notes.trim().length < 8) { setSaveError("Add a little more detail so the case has a useful starting record."); return; }
+    setSaveError(null); setStep((current) => Math.min(current + 1, steps.length - 1));
+  };
   const back = () => setStep((current) => Math.max(current - 1, 0));
 
   const saveCase = async () => {
+    setSaving(true); setSaveError(null);
+    try {
     const created = await syncCaseToCloud({
       issueType: category.id,
       title: `${category.label} reported near ${landmark || location}`,
@@ -98,7 +105,7 @@ export default function ReportScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28 }}>
         <View className="flex-row items-center justify-between py-4"><View><Text className="font-display text-2xl font-extrabold text-foreground">Start a civic report</Text><Text className="mt-1 text-sm text-muted">Turn what you see into a clear next step.</Text></View><View className="h-10 w-10 items-center justify-center rounded-full bg-[#E9F2FF]"><MaterialIcons name="add-a-photo" size={20} color="#1769FF" /></View></View>
 
-        <View className="mb-5 flex-row items-center justify-between rounded-2xl border border-border bg-surface px-3 py-3">{steps.map((label, index) => <View key={label} className="items-center"><View className={index <= step ? "h-7 w-7 items-center justify-center rounded-full bg-primary" : "h-7 w-7 items-center justify-center rounded-full bg-[#E8EDF2]"}><Text className={index <= step ? "text-xs font-extrabold text-white" : "text-xs font-extrabold text-muted"}>{index + 1}</Text></View><Text className={index <= step ? "mt-1 text-[10px] font-extrabold text-primary" : "mt-1 text-[10px] font-semibold text-muted"}>{label}</Text></View>)}</View>
+        <View className="mb-3 flex-row items-center justify-between rounded-2xl border border-border bg-surface px-3 py-3"><SyncBadge label="Private case flow"/><Text className="text-[10px] font-semibold text-muted">No public posting</Text></View><View className="mb-5 flex-row items-center justify-between rounded-2xl border border-border bg-surface px-3 py-3">{steps.map((label, index) => <View key={label} className="items-center"><View className={index <= step ? "h-7 w-7 items-center justify-center rounded-full bg-primary" : "h-7 w-7 items-center justify-center rounded-full bg-[#E8EDF2]"}><Text className={index <= step ? "text-xs font-extrabold text-white" : "text-xs font-extrabold text-muted"}>{index + 1}</Text></View><Text className={index <= step ? "mt-1 text-[10px] font-extrabold text-primary" : "mt-1 text-[10px] font-semibold text-muted"}>{label}</Text></View>)}</View>
 
         {step === 0 ? <>
           <SectionHeader eyebrow="Step 1 of 5" title="Start with what you can see" />
@@ -141,12 +148,12 @@ export default function ReportScreen() {
           <Text className="mb-4 text-sm leading-5 text-muted">A CivicLens case helps you keep the timeline, evidence and next step together.</Text>
           <InfoCard><View className="flex-row items-start gap-3"><IconTile icon="folder-special" color="#1769FF" /><View className="flex-1"><Text className="text-base font-extrabold text-foreground">{category.label} near {landmark || location}</Text><Text className="mt-1 text-sm text-muted">{selectedLocation.name}{selectedLocation.wardNumber ? ` · Ward ${selectedLocation.wardNumber}` : ""} · Private case</Text></View></View><View className="mt-4 border-t border-border pt-3"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Government reference number</Text><TextInput value={reference} onChangeText={setReference} placeholder="Add after you report (optional now)" placeholderTextColor="#97A3AF" className="mt-2 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground" /></View></InfoCard>
           <View className="mt-4 rounded-2xl bg-[#F1F7F3] p-4"><View className="flex-row gap-2"><MaterialIcons name="check-circle" size={18} color="#27AE60" /><Text className="flex-1 text-xs leading-4 text-[#23613B]">You can set a follow-up reminder later. Any reminder is a planning aid, not a legal deadline.</Text></View></View>
-          <View className="mt-6"><ActionButton label="Save case privately" icon="lock" onPress={() => { void saveCase(); }} /></View>
+          {saveError ? <View className="mb-3 rounded-2xl border border-[#F2CACA] bg-[#FFF1F1] p-3"><View className="flex-row gap-2"><MaterialIcons name="error-outline" size={18} color="#B84444"/><Text className="flex-1 text-xs leading-4 text-[#8E3636]">{saveError}</Text></View></View> : null}<View className="mt-6"><ActionButton disabled={saving} label={saving ? "Saving securely…" : "Save case privately"} icon={saving ? "sync" : "lock"} onPress={() => { void saveCase(); }} /></View>
         </> : null}
 
         {savedId ? <View className="items-center rounded-[28px] border border-[#CDE9D7] bg-[#F1F9F3] px-5 py-8"><View className="h-16 w-16 items-center justify-center rounded-full bg-[#D9F2E1]"><MaterialIcons name="check" size={34} color="#27AE60" /></View><Text className="mt-4 text-center text-2xl font-extrabold text-foreground">Case saved</Text><Text className="mt-2 text-center text-sm leading-5 text-muted">Your private CivicLens case {savedId} is stored in CivicLens Cloud for this browser/device and ready for follow-up.</Text><View className="mt-5 w-full rounded-2xl bg-white/70 p-4"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Next documented step</Text><Text className="mt-2 text-sm font-extrabold text-foreground">Report through the official municipal channel, then add the reference number here.</Text></View><View className="mt-5 w-full gap-2"><ActionButton label="View my cases" icon="folder-open" onPress={() => router.push("/(tabs)/cases" as never)} /><ActionButton label="Start another report" icon="add" variant="secondary" onPress={() => { setSavedId(null); setStep(0); setReference(""); setNotes(""); }} /></View></View> : null}
 
-        {!savedId ? <View className="mt-7 flex-row justify-between"><Pressable disabled={step === 0} onPress={back} style={({ pressed }) => pressed && { opacity: 0.6 }}><Text className={step === 0 ? "text-sm font-bold text-[#C5CBD2]" : "text-sm font-bold text-muted"}>← Back</Text></Pressable>{step < 4 ? <ActionButton label={step === 3 ? "Review case" : "Continue"} icon="arrow-forward" onPress={next} /> : null}</View> : null}
+        {!savedId ? <View className="mt-6"><TrustStrip compact/></View><View className="mt-7 flex-row justify-between"><Pressable disabled={step === 0} onPress={back} style={({ pressed }) => pressed && { opacity: 0.6 }}><Text className={step === 0 ? "text-sm font-bold text-[#C5CBD2]" : "text-sm font-bold text-muted"}>← Back</Text></Pressable>{step < 4 ? <ActionButton label={step === 3 ? "Review case" : "Continue"} icon="arrow-forward" onPress={next} /> : null}</View> : null}
         <View className="mt-6 flex-row items-center gap-2"><MaterialIcons name="verified-user" size={15} color="#1769FF" /><Text className="text-[11px] leading-4 text-muted">Sources used: MDB Wards 2026 · reviewed {todayLabel()}</Text></View>
       </ScrollView>
     </ScreenContainer>
