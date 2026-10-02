@@ -71,6 +71,7 @@ export function CivicProvider({ children }: { children: ReactNode }) {
           description: string;
           status: string;
           created_at: string;
+          events?: Array<{ event_type: string; label: string; detail: string | null; created_at: string }>;
         }> };
       })
       .then(({ reports }) => {
