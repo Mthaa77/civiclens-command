@@ -36,9 +36,7 @@ export default function RootLayout() {
     SpaceGrotesk_700Bold,
   });
 
-  if (!fontsLoaded) return null;
-
-  return (
+  // Never block the entire app on remote font loading. If a font asset is slow or unavailable,\n  // the UI renders immediately and the browser/native text falls back gracefully.\n  return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
