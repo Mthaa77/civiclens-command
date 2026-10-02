@@ -77,27 +77,33 @@ export default function ReportScreen() {
   const back = () => setStep((current) => Math.max(current - 1, 0));
 
   const saveCase = async () => {
-    setSaving(true); setSaveError(null);
+    setSaving(true);
+    setSaveError(null);
     try {
-    const created = await syncCaseToCloud({
-      issueType: category.id,
-      title: `${category.label} reported near ${landmark || location}`,
-      municipality: selectedLocation.name,
-      ward: selectedLocation.wardNumber ? `Ward ${selectedLocation.wardNumber}` : "Ward not selected",
-      status: reference.trim() ? "Government reference recorded" : "Ready to report",
-      statusTone: reference.trim() ? "success" : "warning",
-      createdAt: todayLabel(),
-      reference: reference.trim() || "Not added yet",
-      evidenceCount: evidenceAdded ? 1 : 0,
-      location: `${location} · private location`,
-      visibility: "Private",
-      events: [
-        { date: todayLabel().replace(" 2026", ""), label: "Problem documented", detail: notes || "Issue details captured in CivicLens" },
-        ...(reference.trim() ? [{ date: todayLabel().replace(" 2026", ""), label: "Reference number added", detail: reference.trim() }] : []),
-      ],
-    });
-    setSavedId(created.id);
-    setStep(4);
+      const created = await syncCaseToCloud({
+        issueType: category.id,
+        title: `${category.label} reported near ${landmark || location}`,
+        municipality: selectedLocation.name,
+        ward: selectedLocation.wardNumber ? `Ward ${selectedLocation.wardNumber}` : "Ward not selected",
+        status: reference.trim() ? "Government reference recorded" : "Ready to report",
+        statusTone: reference.trim() ? "success" : "warning",
+        createdAt: todayLabel(),
+        reference: reference.trim() || "Not added yet",
+        evidenceCount: evidenceAdded ? 1 : 0,
+        location: `${location} · private location`,
+        visibility: "Private",
+        events: [
+          { date: todayLabel().replace(" 2026", ""), label: "Problem documented", detail: notes || "Issue details captured in CivicLens" },
+          ...(reference.trim() ? [{ date: todayLabel().replace(" 2026", ""), label: "Reference number added", detail: reference.trim() }] : []),
+        ],
+      });
+      setSavedId(created.id);
+      setStep(4);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "We could not save this case. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
