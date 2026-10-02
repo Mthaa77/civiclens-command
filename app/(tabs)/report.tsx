@@ -1,7 +1,8 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
-import { Linking, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Image } from "expo-image";
+import { Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { ActionButton, Chip, IconTile, InfoCard, SectionHeader, SourceBadge } from "@/components/civic-ui";
 import { ScreenContainer } from "@/components/screen-container";
@@ -19,6 +20,51 @@ export default function ReportScreen() {
   const [landmark, setLandmark] = useState("");
   const [reference, setReference] = useState("");
   const [evidenceAdded, setEvidenceAdded] = useState(false);
+  const [evidencePreview, setEvidencePreview] = useState<string | null>(null);
+  const [evidenceName, setEvidenceName] = useState<string | null>(null);
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
+
+  const chooseEvidence = () => {
+    setEvidenceError(null);
+    if (Platform.OS !== "web") {
+      setEvidenceError("Photo capture is coming to the mobile app next. For now, CivicLens supports image selection in the web app.");
+      return;
+    }
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/jpeg,image/png,image/webp";
+    input.setAttribute("capture", "environment");
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        setEvidenceError("Please choose an image smaller than 5 MB.");
+        return;
+      }
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        setEvidenceError("Please choose a JPG, PNG or WebP image.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result !== "string") return;
+        setEvidencePreview(reader.result);
+        setEvidenceName(file.name);
+        setEvidenceAdded(true);
+      };
+      reader.onerror = () => setEvidenceError("We could not read that image. Please try again.");
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
+  const removeEvidence = () => {
+    setEvidenceAdded(false);
+    setEvidencePreview(null);
+    setEvidenceName(null);
+    setEvidenceError(null);
+  };
   const [savedId, setSavedId] = useState<string | null>(null);
   const category = useMemo(() => categoryById(selectedId), [selectedId]);
 
@@ -74,7 +120,9 @@ export default function ReportScreen() {
         {step === 2 ? <>
           <SectionHeader eyebrow="Step 3 of 5" title="Add useful evidence" />
           <Text className="mb-4 text-sm leading-5 text-muted">Good evidence helps the right office act faster. Only collect what you need, and keep it private.</Text>
-          <Pressable onPress={() => setEvidenceAdded((value) => !value)} style={({ pressed }) => pressed && { opacity: 0.72 }}><InfoCard className={evidenceAdded ? "border-primary" : ""}><View className="flex-row items-center gap-3"><IconTile icon="photo-camera" color="#1769FF" /><View className="flex-1"><Text className="text-sm font-extrabold text-foreground">Photo of the issue</Text><Text className="mt-1 text-xs leading-4 text-muted">{evidenceAdded ? "1 photo attached to this private case" : "Add a clear photo and the date you noticed it"}</Text></View><MaterialIcons name={evidenceAdded ? "check-circle" : "add-circle-outline"} size={24} color={evidenceAdded ? "#27AE60" : "#1769FF"} /></View></InfoCard></Pressable>
+          <Pressable onPress={chooseEvidence} style={({ pressed }) => pressed && { opacity: 0.72 }}><InfoCard className={evidenceAdded ? "border-primary" : ""}><View className="flex-row items-center gap-3"><IconTile icon="photo-camera" color="#1769FF" /><View className="flex-1"><Text className="text-sm font-extrabold text-foreground">{evidenceAdded ? "Photo attached" : "Add a photo of the issue"}</Text><Text className="mt-1 text-xs leading-4 text-muted">{evidenceAdded ? evidenceName ?? "1 image selected" : "Choose a clear JPG, PNG or WebP image (max 5 MB)"}</Text></View><MaterialIcons name={evidenceAdded ? "check-circle" : "add-circle-outline"} size={24} color={evidenceAdded ? "#27AE60" : "#1769FF"} /></View></InfoCard></Pressable>
+          {evidencePreview ? <View className="mt-3 overflow-hidden rounded-2xl border border-border bg-surface"><Image source={{ uri: evidencePreview }} contentFit="cover" style={{ width: "100%", height: 220 }} /><View className="flex-row items-center justify-between p-3"><Text className="flex-1 pr-3 text-xs font-semibold text-muted">Preview only for now — permanent private storage will use R2 when enabled.</Text><Pressable onPress={removeEvidence}><Text className="text-xs font-extrabold text-red-600">Remove</Text></Pressable></View></View> : null}
+          {evidenceError ? <View className="mt-3 rounded-2xl bg-[#FFF1F1] p-3"><Text className="text-xs leading-4 text-red-700">{evidenceError}</Text></View> : null}
           <View className="mt-3 gap-3"><View className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-4"><IconTile icon="schedule" color="#F1B84B" size="small" /><View className="flex-1"><Text className="text-sm font-extrabold text-foreground">When did you notice it?</Text><Text className="mt-1 text-xs text-muted">Today · add a more precise time later if useful</Text></View></View><View className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-4"><IconTile icon="place" color="#7B61FF" size="small" /><View className="flex-1"><Text className="text-sm font-extrabold text-foreground">Nearby landmark</Text><Text className="mt-1 text-xs text-muted">{landmark || "Not added yet"}</Text></View></View></View>
           <View className="mt-5 rounded-2xl bg-[#FFF8E8] p-4"><View className="flex-row gap-2"><MaterialIcons name="lock-outline" size={18} color="#9A6B00" /><Text className="flex-1 text-xs leading-4 text-[#785B16]">Your evidence is private by default. A public map uses an area-level location, not your exact address.</Text></View></View>
         </> : null}
