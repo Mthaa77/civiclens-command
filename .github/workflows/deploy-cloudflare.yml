@@ -12,7 +12,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      EXPO_PUBLIC_API_BASE_URL: https://civiclens-api.tshepisokadiaka83.workers.dev
+      EXPO_PUBLIC_API_BASE_URL: https://civiclens-command.tshepisokadiaka83.workers.dev
       CLOUDFLARE_ACCOUNT_ID: a546ddf7657f485b291eeccdf22957a4
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
