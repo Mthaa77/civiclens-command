@@ -17,8 +17,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
         tabBarButton: HapticTab,
-        tabBarStyle: { height: 62 + bottomPadding, paddingTop: 8, paddingBottom: bottomPadding, backgroundColor: colors.background, borderTopColor: colors.border, borderTopWidth: 0.5 },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: "700" },
+        tabBarStyle: { height: 68 + bottomPadding, paddingTop: 8, paddingBottom: bottomPadding, paddingHorizontal: 8, backgroundColor: "#FFFFFF", borderTopColor: "#DCE4EC", borderTopWidth: 0.5, shadowColor: "#0D1F2D", shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: -6 }, elevation: 10 },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "700", marginTop: 2 },
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: ({ color, size }) => <MaterialIcons name="home-filled" color={color} size={size} /> }} />
