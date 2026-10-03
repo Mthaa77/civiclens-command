@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 
 import { ActionButton, Chip, IconTile, InfoCard, SectionHeader, SourceBadge, TrustStrip } from "@/components/civic-ui";
@@ -17,6 +17,7 @@ const EXTRA_GUIDES = [
 ];
 
 export default function LearnScreen() {
+  const scrollRef = useRef<ScrollView>(null);
   const [filter, setFilter] = useState("All");
   const [completed, setCompleted] = useState<string[]>([]);
 
@@ -33,7 +34,7 @@ export default function LearnScreen() {
 
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 130 }}>
+      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 130 }}>
         <View className="flex-row items-end justify-between py-4">
           <View className="flex-1">
             <Text className="font-display text-2xl font-extrabold text-foreground">Learn government</Text>
@@ -56,7 +57,7 @@ export default function LearnScreen() {
             <View className="h-full rounded-full bg-[#79A9FF]" style={{ width: `${Math.max(progress, 4)}%` }} />
           </View>
           <View className="mt-5 flex-row gap-2">
-            <ActionButton label="Start learning" icon="play-arrow" onPress={() => router.push("#lessons" as never)} />
+            <ActionButton label="Start learning" icon="play-arrow" onPress={() => scrollRef.current?.scrollTo({ y: 520, animated: true })} />
             <ActionButton label="Government map" icon="account-balance" variant="secondary" onPress={() => router.push("/(tabs)/government" as never)} />
           </View>
         </View>
