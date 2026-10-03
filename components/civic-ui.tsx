@@ -13,6 +13,7 @@ type ButtonProps = {
   onPress?: () => void;
   variant?: "primary" | "secondary" | "quiet";
   compact?: boolean;
+  disabled?: boolean;
 };
 
 export function CivicMark({ compact = false }: { compact?: boolean }) {
@@ -23,11 +24,11 @@ export function CivicMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function ActionButton({ label, icon, onPress, variant = "primary", compact = false }: ButtonProps) {
+export function ActionButton({ label, icon, onPress, variant = "primary", compact = false, disabled = false }: ButtonProps) {
   const colors = useColors();
   const textColor = variant === "primary" ? "#FFFFFF" : colors.foreground;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}>
+    <Pressable disabled={disabled} onPress={onPress} accessibilityRole="button" accessibilityState={{ disabled }} style={({ pressed }) => [styles.pressable, pressed && !disabled && styles.pressed, disabled && styles.disabled]}>
       <View className={variant === "primary" ? "flex-row items-center justify-center gap-2 rounded-[16px] bg-primary px-4 py-3" : variant === "secondary" ? "flex-row items-center justify-center gap-2 rounded-[16px] border border-border bg-surface px-4 py-3" : "flex-row items-center justify-center gap-2 rounded-[16px] px-3 py-2"} style={variant === "primary" ? styles.buttonShadow : undefined}>
         {icon ? <MaterialIcons name={icon} size={compact ? 17 : 18} color={textColor} /> : null}
         <Text style={{ color: textColor, fontFamily: compact ? "Inter_600SemiBold" : "Inter_700Bold" }} className={compact ? "text-xs" : "text-sm"}>{label}</Text>
@@ -95,6 +96,7 @@ const styles = StyleSheet.create({
   pressable: { borderRadius: 16 },
   pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
   cardShadow: { shadowColor: "#0D1F2D", shadowOpacity: 0.06, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
+  disabled: { opacity: 0.5 },
   buttonShadow: { shadowColor: "#1F5EFF", shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
   markShadow: { shadowColor: "#1F5EFF", shadowOpacity: 0.26, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
 });
