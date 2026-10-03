@@ -71,8 +71,12 @@ export default function ReportScreen() {
   const category = useMemo(() => categoryById(selectedId), [selectedId]);
 
   const next = () => {
-    if (step === 0 && notes.trim().length < 8) { setSaveError("Add a little more detail so the case has a useful starting record."); return; }
-    setSaveError(null); setStep((current) => Math.min(current + 1, steps.length - 1));
+    setSaveError(null);
+    if (step === 0 && notes.trim().length > 0 && notes.trim().length < 8) {
+      setSaveError("Add a little more detail, or clear the note and continue with the selected issue.");
+      return;
+    }
+    setStep((current) => Math.min(current + 1, steps.length - 1));
   };
   const back = () => setStep((current) => Math.max(current - 1, 0));
 
@@ -108,7 +112,7 @@ export default function ReportScreen() {
 
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         <View className="flex-row items-center justify-between py-4"><View><Text className="font-display text-2xl font-extrabold text-foreground">Start a civic report</Text><Text className="mt-1 text-sm text-muted">Turn what you see into a clear next step.</Text></View><View className="h-10 w-10 items-center justify-center rounded-full bg-[#E9F2FF]"><MaterialIcons name="add-a-photo" size={20} color="#1769FF" /></View></View>
 
         <View className="mb-3 flex-row items-center justify-between rounded-2xl border border-border bg-surface px-3 py-3"><SyncBadge label="Private case flow"/><Text className="text-[10px] font-semibold text-muted">No public posting</Text></View><View className="mb-5 flex-row items-center justify-between rounded-2xl border border-border bg-surface px-3 py-3">{steps.map((label, index) => <View key={label} className="items-center"><View className={index <= step ? "h-7 w-7 items-center justify-center rounded-full bg-primary" : "h-7 w-7 items-center justify-center rounded-full bg-[#E8EDF2]"}><Text className={index <= step ? "text-xs font-extrabold text-white" : "text-xs font-extrabold text-muted"}>{index + 1}</Text></View><Text className={index <= step ? "mt-1 text-[10px] font-extrabold text-primary" : "mt-1 text-[10px] font-semibold text-muted"}>{label}</Text></View>)}</View>
@@ -118,7 +122,7 @@ export default function ReportScreen() {
           <Text className="mb-3 text-sm leading-5 text-muted">Describe the issue in plain language. We will help work out the likely route.</Text>
           <TextInput value={notes} onChangeText={setNotes} placeholder="Describe the problem in your own words" placeholderTextColor="#97A3AF" multiline className="min-h-[94px] rounded-2xl border border-border bg-surface px-4 py-3 text-sm leading-5 text-foreground" />
           <Text className="mb-3 mt-6 text-sm font-extrabold text-foreground">Or choose a common issue</Text>
-          <View className="gap-2">{issueCategories.slice(0, 8).map((item) => <Pressable key={item.id} onPress={() => setSelectedId(item.id)} style={({ pressed }) => pressed && { opacity: 0.72 }}><View className={item.id === selectedId ? "flex-row items-center gap-3 rounded-2xl border-2 border-primary bg-[#F2F7FF] p-3" : "flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-3"}><IconTile icon={item.icon} color={item.accent} size="small" /><View className="flex-1"><Text className="text-sm font-extrabold text-foreground">{item.label}</Text><Text className="mt-0.5 text-xs text-muted">{item.hint}</Text></View>{item.id === selectedId ? <MaterialIcons name="check-circle" size={22} color="#1769FF" /> : <MaterialIcons name="radio-button-unchecked" size={22} color="#C1CAD4" />}</View></Pressable>)}</View>
+          <View className="gap-2">{issueCategories.slice(0, 8).map((item) => <Pressable key={item.id} onPress={() => { setSelectedId(item.id); setSaveError(null); }} accessibilityRole="button" accessibilityState={{ selected: item.id === selectedId }} style={({ pressed }) => pressed && { opacity: 0.72 }}><View className={item.id === selectedId ? "flex-row items-center gap-3 rounded-2xl border-2 border-primary bg-[#F2F7FF] p-3" : "flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-3"}><IconTile icon={item.icon} color={item.accent} size="small" /><View className="flex-1"><Text className="text-sm font-extrabold text-foreground">{item.label}</Text><Text className="mt-0.5 text-xs text-muted">{item.hint}</Text></View>{item.id === selectedId ? <MaterialIcons name="check-circle" size={22} color="#1769FF" /> : <MaterialIcons name="radio-button-unchecked" size={22} color="#C1CAD4" />}</View></Pressable>)}</View>
         </> : null}
 
         {step === 1 ? <>
@@ -159,7 +163,7 @@ export default function ReportScreen() {
 
         {savedId ? <View className="items-center rounded-[28px] border border-[#CDE9D7] bg-[#F1F9F3] px-5 py-8"><View className="h-16 w-16 items-center justify-center rounded-full bg-[#D9F2E1]"><MaterialIcons name="check" size={34} color="#27AE60" /></View><Text className="mt-4 text-center text-2xl font-extrabold text-foreground">Case saved</Text><Text className="mt-2 text-center text-sm leading-5 text-muted">Your private CivicLens case {savedId} is stored in CivicLens Cloud for this browser/device and ready for follow-up.</Text><View className="mt-5 w-full rounded-2xl bg-white/70 p-4"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Next documented step</Text><Text className="mt-2 text-sm font-extrabold text-foreground">Report through the official municipal channel, then add the reference number here.</Text></View><View className="mt-5 w-full gap-2"><ActionButton label="View my cases" icon="folder-open" onPress={() => router.push("/(tabs)/cases" as never)} /><ActionButton label="Start another report" icon="add" variant="secondary" onPress={() => { setSavedId(null); setStep(0); setReference(""); setNotes(""); }} /></View></View> : null}
 
-        {!savedId ? <><View className="mt-6"><TrustStrip compact /></View><View className="mt-7 flex-row justify-between"><Pressable disabled={step === 0} onPress={back} style={({ pressed }) => pressed && { opacity: 0.6 }}><Text className={step === 0 ? "text-sm font-bold text-[#C5CBD2]" : "text-sm font-bold text-muted"}>← Back</Text></Pressable>{step < 4 ? <ActionButton label={step === 3 ? "Review case" : "Continue"} icon="arrow-forward" onPress={next} /> : null}</View></> : null}
+        {!savedId ? <><View className="mt-6"><TrustStrip compact /></View><View className="mt-7 flex-row justify-between"><Pressable disabled={step === 0} onPress={back} style={({ pressed }) => pressed && { opacity: 0.6 }}><Text className={step === 0 ? "text-sm font-bold text-[#C5CBD2]" : "text-sm font-bold text-muted"}>← Back</Text></Pressable>{step < 4 ? <ActionButton label={step === 3 ? "Review case" : "Continue"} icon="arrow-forward" onPress={next} disabled={false} /> : null}</View></> : null}
         <View className="mt-6 flex-row items-center gap-2"><MaterialIcons name="verified-user" size={15} color="#1769FF" /><Text className="text-[11px] leading-4 text-muted">Sources used: MDB Wards 2026 · reviewed {todayLabel()}</Text></View>
       </ScrollView>
     </ScreenContainer>
