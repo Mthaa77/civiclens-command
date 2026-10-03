@@ -15,7 +15,7 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 34 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         <View className="flex-row items-center justify-between py-4">
           <View className="flex-row items-center gap-3"><CivicMark compact /><View><Text className="font-display text-lg font-extrabold tracking-tight text-foreground">CivicLens</Text><Text className="text-[10px] font-bold uppercase tracking-[1.5px] text-muted">South Africa</Text></View></View>
           <View className="flex-row items-center gap-2"><CivicDataPulse compact /><Pressable accessibilityLabel="Notifications" style={({ pressed }) => pressed && { opacity: 0.6 }}><View className="h-10 w-10 items-center justify-center rounded-full border border-border bg-surface"><MaterialIcons name="notifications-none" size={21} color="#59636E" /></View></Pressable></View>
