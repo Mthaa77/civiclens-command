@@ -18,8 +18,9 @@ import {
   SpaceGrotesk_700Bold,
 } from "@expo-google-fonts/space-grotesk";
 
-import { CivicProvider } from "@/lib/civic-store";
 import { AppErrorBoundary } from "@/components/error-boundary";
+import { GlobalNav } from "@/components/global-nav";
+import { CivicProvider } from "@/lib/civic-store";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { createTRPCClient, trpc } from "@/lib/trpc";
 
@@ -37,24 +38,22 @@ export default function RootLayout() {
     SpaceGrotesk_700Bold,
   });
 
-  // Never block the entire app on remote font loading.
-  // If a font asset is slow or unavailable, the UI renders immediately
-  // and the browser/native text falls back gracefully.
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
           <ThemeProvider>
-            <CivicProvider>
-              <StatusBar style="dark" />
-              <AppErrorBoundary>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="directory" />
-                <Stack.Screen name="intelligence" />
-              </Stack>
-              </AppErrorBoundary>
-            </CivicProvider>
+            <AppErrorBoundary>
+              <CivicProvider>
+                <StatusBar style="dark" />
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="directory" />
+                  <Stack.Screen name="intelligence" />
+                </Stack>
+                <GlobalNav />
+              </CivicProvider>
+            </AppErrorBoundary>
           </ThemeProvider>
         </trpc.Provider>
       </QueryClientProvider>

@@ -82,6 +82,15 @@ export function EmptyState({ icon, title, detail, action }: { icon: IconName; ti
   return <View className="items-center rounded-[24px] border border-dashed border-border bg-surface px-6 py-10" style={styles.cardShadow}><IconTile icon={icon} /><Text style={{ fontFamily: "SpaceGrotesk_700Bold" }} className="mt-4 text-center text-lg text-foreground">{title}</Text><Text className="mt-2 text-center text-sm leading-5 text-muted">{detail}</Text>{action ? <View className="mt-5">{action}</View> : null}</View>;
 }
 
+export function SyncBadge({ label = "Saved privately", tone = "success" }: { label?: string; tone?: "success" | "info" | "warning" }) {
+  const colors = { success: "#237A4B", info: "#1769FF", warning: "#A96D00" } as const;
+  return <View className="flex-row items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5"><View className="h-2 w-2 rounded-full" style={{ backgroundColor: colors[tone] }} /><Text style={{ color: colors[tone], fontFamily: "Inter_700Bold" }} className="text-[10px] uppercase tracking-[0.7px]">{label}</Text></View>;
+}
+
+export function TrustStrip({ compact = false }: { compact?: boolean }) {
+  return <View className={compact ? "rounded-2xl border border-[#D8E5F5] bg-[#F5F9FF] px-3 py-2.5" : "rounded-[22px] border border-[#D8E5F5] bg-[#F5F9FF] p-4"}><View className="flex-row items-center gap-2"><MaterialIcons name="verified-user" size={compact ? 15 : 18} color="#1769FF" /><Text className="flex-1 text-xs font-extrabold text-[#11243B]">Official-source-first civic information</Text></View>{!compact ? <Text className="mt-2 text-[11px] leading-4 text-[#5B7084]">Official records are labelled separately from CivicLens explanations and community signals.</Text> : null}</View>;
+}
+
 const styles = StyleSheet.create({
   pressable: { borderRadius: 16 },
   pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
