@@ -6,8 +6,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const ITEMS = [
   { label: "Home", icon: "home-filled" as const, path: "/(tabs)" },
   { label: "Report", icon: "add-circle-outline" as const, path: "/(tabs)/report" },
+  { label: "Learn", icon: "school" as const, path: "/(tabs)/learn" },
   { label: "Government", icon: "account-balance" as const, path: "/(tabs)/government" },
-  { label: "Community", icon: "map" as const, path: "/(tabs)/community" },
   { label: "Cases", icon: "folder-open" as const, path: "/(tabs)/cases" },
 ];
 
