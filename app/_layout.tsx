@@ -19,6 +19,7 @@ import {
 } from "@expo-google-fonts/space-grotesk";
 
 import { CivicProvider } from "@/lib/civic-store";
+import { AppErrorBoundary } from "@/components/error-boundary";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { createTRPCClient, trpc } from "@/lib/trpc";
 
@@ -46,11 +47,13 @@ export default function RootLayout() {
           <ThemeProvider>
             <CivicProvider>
               <StatusBar style="dark" />
+              <AppErrorBoundary>
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="directory" />
                 <Stack.Screen name="intelligence" />
               </Stack>
+              </AppErrorBoundary>
             </CivicProvider>
           </ThemeProvider>
         </trpc.Provider>
