@@ -19,7 +19,34 @@ export default function IntelligenceScreen() {
 
     <View className="mt-7"><SectionHeader eyebrow="Live service pulse" title="What the connected sources say" action="Refresh" onAction={() => pulse.refetch()} /><View className="rounded-2xl border border-[#D8E5F5] bg-[#F5F9FF] p-3"><CivicDataPulse /><Text className="mt-2 text-[11px] leading-4 text-muted">This is a source monitor, not a claim that every ward is unaffected. Structured ward-level feeds are added as municipalities publish them.</Text></View><View className="mt-3 gap-2">{feeds.map((feed) => <View key={feed.id} className="rounded-[22px] border border-border bg-surface p-4"><View className="flex-row items-start gap-3"><IconTile icon={feed.icon} color={feed.accent} /><View className="flex-1"><View className="flex-row items-start justify-between gap-2"><Text className="text-base font-extrabold text-foreground">{feed.label}</Text><Text className="text-[10px] font-extrabold uppercase tracking-[.6px]" style={{ color: feed.state === "unknown" ? "#C94E4E" : "#A96D00" }}>{serviceStateLabel(feed.state)}</Text></View><Text className="mt-2 text-sm font-bold text-foreground">{feed.headline}</Text><Text className="mt-1 text-xs leading-4 text-muted">{feed.detail}</Text><View className="mt-3 flex-row items-center justify-between"><Text className="text-[10px] text-muted">{feed.sourceLabel}</Text><Pressable onPress={() => Linking.openURL(feed.sourceUrl)} style={({ pressed }) => pressed && { opacity: 0.7 }}><Text className="text-[10px] font-extrabold text-primary">Open source →</Text></Pressable></View></View></View></View>)}</View></View>
 
-    <View className="mt-8"><SectionHeader eyebrow="Unseen insights, made practical" title="What connected data unlocks" /><View className="gap-3">{(insights.data?.insights ?? []).map((insight) => {insight.id === "triage" ? <Pressable key={insight.id} onPress={() => router.push("/(tabs)/report" as never)} style={({ pressed }) => pressed && { opacity: 0.75 }}><InfoCard> : <View key={insight.id}><View className="flex-row items-start gap-3"><IconTile icon={insight.icon} color={insight.accent} /><View className="flex-1"><Text className="text-[10px] font-extrabold uppercase tracking-[1.2px]" style={{ color: insight.accent }}>{insight.eyebrow}</Text><Text className="mt-2 text-base font-extrabold text-foreground">{insight.title}</Text><Text className="mt-1 text-sm leading-5 text-muted">{insight.detail}</Text><View className="mt-3 flex-row flex-wrap gap-1.5">{insight.datasets.map((dataset) => <View key={dataset} className="rounded-full bg-[#F1F5F7] px-2 py-1"><Text className="text-[10px] font-bold text-[#5B7084]">{dataset}</Text></View>)}</View><Text className="mt-3 text-xs font-extrabold text-primary">{insight.action} →</Text></View></View></InfoCard>{insight.id === "triage" ? null : null}</View>)}</View></View>
+    <View className="mt-8">
+      <SectionHeader eyebrow="Unseen insights, made practical" title="What connected data unlocks" />
+      <View className="gap-3">
+        {(insights.data?.insights ?? []).map((insight) => {
+          const card = (
+            <InfoCard>
+              <View className="flex-row items-start gap-3">
+                <IconTile icon={insight.icon} color={insight.accent} />
+                <View className="flex-1">
+                  <Text className="text-[10px] font-extrabold uppercase tracking-[1.2px]" style={{ color: insight.accent }}>{insight.eyebrow}</Text>
+                  <Text className="mt-2 text-base font-extrabold text-foreground">{insight.title}</Text>
+                  <Text className="mt-1 text-sm leading-5 text-muted">{insight.detail}</Text>
+                  <View className="mt-3 flex-row flex-wrap gap-1.5">{insight.datasets.map((dataset) => <View key={dataset} className="rounded-full bg-[#F1F5F7] px-2 py-1"><Text className="text-[10px] font-bold text-[#5B7084]">{dataset}</Text></View>)}</View>
+                  <Text className="mt-3 text-xs font-extrabold text-primary">{insight.action} {insight.id === "triage" ? "→" : ""}</Text>
+                </View>
+              </View>
+            </InfoCard>
+          );
+          return insight.id === "triage" ? (
+            <Pressable key={insight.id} onPress={() => router.push("/(tabs)/report" as never)} accessibilityRole="button" style={({ pressed }) => pressed && { opacity: 0.75 }}>
+              {card}
+            </Pressable>
+          ) : (
+            <View key={insight.id}>{card}</View>
+          );
+        })}
+      </View>
+    </View>
 
     <View className="mt-8"><SectionHeader eyebrow="Beyond the current platform" title="A credible path forward" /><View className="gap-2">{insightRoadmap.map((step, index) => <View key={step.phase} className="flex-row gap-3"><View className="items-center"><View className="h-8 w-8 items-center justify-center rounded-full bg-[#E9F2FF]"><Text className="text-xs font-extrabold text-primary">{index + 1}</Text></View>{index < insightRoadmap.length - 1 ? <View className="my-1 w-px flex-1 bg-[#D8E5F5]" /> : null}</View><View className="flex-1 pb-4"><Text className="text-[10px] font-extrabold uppercase tracking-[1.2px] text-primary">{step.phase}</Text><Text className="mt-1 text-base font-extrabold text-foreground">{step.title}</Text><Text className="mt-1 text-sm leading-5 text-muted">{step.detail}</Text></View></View>)}</View></View>
 
