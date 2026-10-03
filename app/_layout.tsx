@@ -50,6 +50,7 @@ export default function RootLayout() {
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen name="directory" />
                   <Stack.Screen name="intelligence" />
+                  <Stack.Screen name="civic-os" />
                 </Stack>
                 <GlobalNav />
               </CivicProvider>
