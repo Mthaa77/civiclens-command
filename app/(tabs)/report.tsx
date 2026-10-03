@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import { Image } from "expo-image";
 import { Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
@@ -13,6 +13,7 @@ const steps = ["Issue", "Location", "Evidence", "Report", "Save"];
 
 export default function ReportScreen() {
   const { syncCaseToCloud, selectedLocation } = useCivic();
+  const params = useLocalSearchParams<{ issue?: string }>();
   const [step, setStep] = useState(0);
   const [selectedId, setSelectedId] = useState("streetlight");
   const [notes, setNotes] = useState("");
@@ -69,6 +70,14 @@ export default function ReportScreen() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const category = useMemo(() => categoryById(selectedId), [selectedId]);
+
+  useEffect(() => {
+    const requestedIssue = typeof params.issue === "string" ? params.issue : undefined;
+    if (requestedIssue && issueCategories.some((item) => item.id === requestedIssue)) {
+      setSelectedId(requestedIssue);
+      setStep(0);
+    }
+  }, [params.issue]);
 
   const next = () => {
     setSaveError(null);
