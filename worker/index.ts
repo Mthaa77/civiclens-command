@@ -90,7 +90,7 @@ async function extractServiceNotices(service: string) {
     refuse: ["waste", "refuse", "collection"],
   };
   const matches = new Set(keywords[service] ?? []);
-  const headings = Array.from(noticesHtml.matchAll(/<h[2-4][^>]*>([\\s\\S]*?)<\\/h[2-4]>/gi))
+  const headings = Array.from(noticesHtml.matchAll(/<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/gi))
     .map((match) => stripHtml(match[1]))
     .filter((title) => title.length > 12 && Array.from(matches).some((word) => title.toLowerCase().includes(word)));
   const uniqueHeadings = [...new Set(headings)].slice(0, 5);
