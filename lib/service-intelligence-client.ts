@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-
 export type ServiceNotice = {
   title: string;
   source: string;
