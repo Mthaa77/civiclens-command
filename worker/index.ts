@@ -67,6 +67,53 @@ async function servicePulse() {
   };
 }
 
+
+const SERVICE_NOTICE_URL = "https://www.tshwane.gov.za/?page_id=828";
+const PLANNED_INTERRUPTION_URL = "https://www.tshwane.gov.za/?page_id=9062";
+const POWER_FAILURE_URL = "https://powerfailure.tshwane.gov.za/tshwanesms/Home";
+
+function stripHtml(value: string) {
+  return value.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&#8211;/g, "–").replace(/&#8217;/g, "’").replace(/\s+/g, " ").trim();
+}
+
+async function extractServiceNotices(service: string) {
+  const [noticesResponse, plannedResponse] = await Promise.all([
+    fetch(SERVICE_NOTICE_URL, { signal: AbortSignal.timeout(7000) }),
+    fetch(PLANNED_INTERRUPTION_URL, { signal: AbortSignal.timeout(7000) }),
+  ]);
+  const noticesHtml = noticesResponse.ok ? await noticesResponse.text() : "";
+  const plannedText = plannedResponse.ok ? stripHtml(await plannedResponse.text()) : "";
+  const keywords: Record<string, string[]> = {
+    water: ["water", "reservoir", "sanitation"],
+    electricity: ["power", "electricity", "substation"],
+    roads: ["road", "pothole", "traffic"],
+    refuse: ["waste", "refuse", "collection"],
+  };
+  const matches = new Set(keywords[service] ?? []);
+  const headings = Array.from(noticesHtml.matchAll(/<h[2-4][^>]*>([\\s\\S]*?)<\\/h[2-4]>/gi))
+    .map((match) => stripHtml(match[1]))
+    .filter((title) => title.length > 12 && Array.from(matches).some((word) => title.toLowerCase().includes(word)));
+  const uniqueHeadings = [...new Set(headings)].slice(0, 5);
+  const plannedNone = plannedText.toLowerCase().includes("no " + (service === "roads" ? "other" : service) + " service interruptions");
+  return {
+    sourceReachable: noticesResponse.ok && plannedResponse.ok,
+    checkedAt: new Date().toISOString(),
+    service,
+    notices: uniqueHeadings.map((title) => ({
+      title,
+      source: SERVICE_NOTICE_URL,
+      authority: "Official",
+      status: "Published notice",
+    })),
+    planned: plannedNone ? "No matching planned interruption is currently published on the connected planned-interruptions page." : "A planned interruption may be published; open the official page for the current detail.",
+    sources: [
+      { label: "City of Tshwane · Service Interruptions", url: SERVICE_NOTICE_URL, authority: "Official" },
+      { label: "City of Tshwane · Planned Service Interruptions", url: PLANNED_INTERRUPTION_URL, authority: "Official" },
+      ...(service === "electricity" ? [{ label: "Tshwane public power outage map", url: POWER_FAILURE_URL, authority: "Official" }] : []),
+    ],
+  };
+}
+
 const connectedInsights = [
   { id: "triage", title: "Cross-source triage", description: "Compare municipal notices with Treasury and ward-boundary sources before treating a service signal as confirmed." },
   { id: "reliability", title: "Reliability signal", description: "Separate official-source availability from a claim that a local service is actually failing." },
@@ -210,6 +257,7 @@ export default {
     if (url.pathname.startsWith("/api/trpc/")) return handleTRPC(request, env.DB);
     if (url.pathname === "/api/civic/status") return json(await civicStatus());
     if (url.pathname === "/api/civic/service-pulse") return json(await servicePulse());
+    if (url.pathname === "/api/civic/service-intelligence") { const service = url.searchParams.get("service")?.trim() || "water"; return json(await extractServiceNotices(service)); }
     if (url.pathname === "/api/civic/insights") return json({ generatedAt: new Date().toISOString(), insights: connectedInsights });
     if (url.pathname === "/api/civic/reports" && request.method === "GET") {
       const ownerToken = url.searchParams.get("ownerToken")?.trim().slice(0, 128) || "";
