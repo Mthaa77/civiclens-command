@@ -157,7 +157,7 @@ export default function CivicOSScreen() {
         <View className="rounded-[24px] border border-[#CDE9D7] bg-[#F1F9F3] p-5"><View className="flex-row items-start gap-3"><IconTile icon="task-alt" color="#27AE60" /><Text className="flex-1 text-sm font-bold leading-5 text-[#245D3A]">{route.next}</Text></View><View className="mt-4 border-t border-[#D7EBDD] pt-4"><Text className="text-xs leading-4 text-[#5A7563]">CivicLens can help document the case. It does not claim that a municipality has received, acknowledged or resolved a report unless that status is actually evidenced.</Text></View></View>
 
         <View className="mt-6 gap-2">
-          <ActionButton label={"Report this " + issue.label.toLowerCase()} icon="add-circle-outline" onPress={() => router.push(("/(tabs)/report?issue=" + encodeURIComponent(selected)) as never)} />
+          <ActionButton label={knownProblems?.hasPotentialKnownProblem ? "Report anyway" : "Report this " + issue.label.toLowerCase()} icon="add-circle-outline" onPress={() => router.push(("/(tabs)/report?issue=" + encodeURIComponent(selected)) as never)} />
           <ActionButton label="Open my government profile" icon="account-balance" variant="secondary" onPress={() => router.push("/(tabs)/government" as never)} />
         </View>
 
