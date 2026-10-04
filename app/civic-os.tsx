@@ -1,11 +1,13 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
-import { useMemo, useState } from "react";
+import { Linking, Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
 
 import { ActionButton, Chip, IconTile, InfoCard, SectionHeader, SourceBadge, TrustStrip } from "@/components/civic-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { issueCategories, lessons } from "@/lib/civic-data";
+import { useCivic } from "@/lib/civic-store";
+import { fetchOfficialMunicipalContact, getWardOfficeContact, type OfficialMunicipalContact } from "@/lib/official-directory";
 
 const RESPONSIBILITY: Record<string, { level: string; office: string; detail: string; lessonId: string; next: string }> = {
   streetlight: { level: "Local government", office: "Municipality / electricity or public lighting service", detail: "Start with the municipality's official service channel. A ward councillor may help follow up, but does not personally perform the repair.", lessonId: "lesson-1", next: "Document the location, describe the fault, then submit an official service report." },
@@ -22,9 +24,20 @@ const RESPONSIBILITY: Record<string, { level: string; office: string; detail: st
 
 export default function CivicOSScreen() {
   const [selected, setSelected] = useState("streetlight");
+  const { selectedLocation } = useCivic();
+  const [municipalContact, setMunicipalContact] = useState<OfficialMunicipalContact | undefined>();
   const issue = useMemo(() => issueCategories.find((item) => item.id === selected) ?? issueCategories[0], [selected]);
   const route = RESPONSIBILITY[selected] ?? RESPONSIBILITY.streetlight;
   const lesson = lessons.find((item) => item.id === route.lessonId);
+  const wardOffice = getWardOfficeContact(selectedLocation.code, selectedLocation.wardNumber);
+
+  useEffect(() => {
+    let active = true;
+    fetchOfficialMunicipalContact(selectedLocation.code).then((contact) => {
+      if (active) setMunicipalContact(contact);
+    });
+    return () => { active = false; };
+  }, [selectedLocation.code]);
 
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
@@ -51,6 +64,34 @@ export default function CivicOSScreen() {
 
         <View className="mt-7"><SectionHeader eyebrow="2 · Understand" title="Who is responsible?" /></View>
         <InfoCard><View className="flex-row items-start gap-3"><IconTile icon="account-balance" color="#1769FF" /><View className="flex-1"><SourceBadge label="CivicLens routing guide" tone="civic" /><Text className="mt-3 text-xs font-extrabold uppercase tracking-[1px] text-muted">{route.level}</Text><Text className="mt-1 text-base font-extrabold text-foreground">{route.office}</Text><Text className="mt-2 text-sm leading-5 text-muted">{route.detail}</Text></View></View></InfoCard>
+
+        <View className="mt-7"><SectionHeader eyebrow="2.5 · Route" title="Your local service profile" /></View>
+        <InfoCard>
+          <View className="flex-row items-start gap-3">
+            <IconTile icon="location-city" color="#1769FF" />
+            <View className="flex-1">
+              <SourceBadge label="Official municipality data" tone="official" />
+              <Text className="mt-2 text-lg font-extrabold text-foreground">{selectedLocation.name}</Text>
+              <Text className="mt-1 text-xs leading-4 text-muted">{selectedLocation.province} · {selectedLocation.district}{selectedLocation.wardNumber ? ` · Ward ${selectedLocation.wardNumber}` : ""}</Text>
+              <Text className="mt-3 text-xs leading-4 text-muted">This location profile determines which municipal office CivicLens shows as the starting point. It does not by itself prove that the selected office is responsible for every issue.</Text>
+              {municipalContact?.phone ? (
+                <Pressable onPress={() => Linking.openURL(`tel:${municipalContact.phone!.replaceAll(" ", "")}`)} className="mt-4 flex-row items-center gap-2">
+                  <MaterialIcons name="phone" size={17} color="#1769FF" />
+                  <Text className="text-sm font-extrabold text-primary">Call official municipal contact · {municipalContact.phone}</Text>
+                </Pressable>
+              ) : null}
+              {municipalContact?.website ? (
+                <Pressable onPress={() => Linking.openURL(municipalContact.website!)} className="mt-3 flex-row items-center gap-2">
+                  <MaterialIcons name="open-in-new" size={17} color="#1769FF" />
+                  <Text className="text-sm font-extrabold text-primary">Open official municipal website</Text>
+                </Pressable>
+              ) : null}
+              {wardOffice?.whatsapp ? (
+                <Text className="mt-3 text-[11px] leading-4 text-muted">Published ward-office channel: {wardOffice.whatsapp} · {wardOffice.checkedLabel}</Text>
+              ) : null}
+            </View>
+          </View>
+        </InfoCard>
 
         <View className="mt-7"><SectionHeader eyebrow="3 · Learn" title="Know the process before you act" /></View>
         {lesson ? <Pressable onPress={() => router.push("/(tabs)/learn" as never)} style={({ pressed }) => pressed && { opacity: 0.72 }}><InfoCard><View className="flex-row items-center gap-3"><IconTile icon={lesson.icon} color="#7B61FF" /><View className="flex-1"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Recommended lesson · {lesson.length}</Text><Text className="mt-1 text-base font-extrabold text-foreground">{lesson.title}</Text><Text className="mt-1 text-xs leading-4 text-muted">{lesson.summary}</Text></View><MaterialIcons name="chevron-right" size={21} color="#9AA5B1" /></View></InfoCard></Pressable> : null}
