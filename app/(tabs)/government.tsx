@@ -33,6 +33,24 @@ export default function GovernmentScreen() {
         <View className="mt-4 rounded-[28px] p-5" style={{ backgroundColor: "#10243A" }}><View className="flex-row items-start justify-between"><View className="flex-1"><SourceBadge label="MDB 2026 civic profile" tone="civic" /><Text style={{ color: "#FFFFFF", fontFamily: "SpaceGrotesk_700Bold" }} className="mt-4 text-2xl font-extrabold">{selectedLocation.name}</Text><Text style={{ color: "#B7C9D9" }} className="mt-1 text-sm">{selectedLocation.province} · {selectedLocation.district}</Text></View><View className="h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: "#203D5B" }}><MaterialIcons name="location-city" size={28} color="#8CB5FF" /></View></View><View className="mt-5 flex-row items-center gap-2 border-t border-[#29435D] pt-4"><MaterialIcons name="place" size={17} color="#8CB5FF" /><Text style={{ color: "#FFFFFF" }} className="text-sm font-bold">{selectedLocation.wardNumber ? `Ward ${selectedLocation.wardNumber}` : "Ward not selected"}</Text><Text style={{ color: "#B7C9D9" }} className="text-xs">· {selectedLocation.code}</Text></View></View>
 
         <View className="mt-6"><SectionHeader eyebrow="Your civic structure" title="Who does what?" /></View>
+        <View className="mt-7"><SectionHeader eyebrow="Service routing" title="Common local services" /></View>
+        <View className="gap-2">
+          {[
+            { icon: "water-drop", label: "Water", detail: "Municipal water services or the applicable provider." },
+            { icon: "lightbulb", label: "Electricity", detail: "Municipality or electricity distributor, depending on the area." },
+            { icon: "delete-outline", label: "Refuse", detail: "Municipal waste-management service." },
+            { icon: "directions-car", label: "Roads & traffic", detail: "Municipal roads, signals or traffic services, depending on the fault." },
+          ].map((service) => (
+            <View key={service.label} className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-3">
+              <IconTile icon={service.icon as any} color="#1769FF" size="small" />
+              <View className="flex-1">
+                <Text className="text-sm font-extrabold text-foreground">{service.label}</Text>
+                <Text className="mt-1 text-xs leading-4 text-muted">{service.detail}</Text>
+              </View>
+              <SourceBadge label="Guide" tone="civic" />
+            </View>
+          ))}
+        </View>
         <View className="gap-2"><View className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-4"><IconTile icon="public" color="#7B61FF" /><View className="flex-1"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">National</Text><Text className="mt-1 text-sm font-extrabold text-foreground">South African Government</Text><Text className="mt-1 text-xs leading-4 text-muted">National policy, legislation and oversight.</Text></View><MaterialIcons name="chevron-right" size={20} color="#9AA5B1" /></View><View className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-4"><IconTile icon="map" color="#4F8CFF" /><View className="flex-1"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Provincial</Text><Text className="mt-1 text-sm font-extrabold text-foreground">{selectedLocation.province} Provincial Government</Text><Text className="mt-1 text-xs leading-4 text-muted">Provincial services such as education and health.</Text></View><MaterialIcons name="chevron-right" size={20} color="#9AA5B1" /></View><View className="flex-row items-center gap-3 rounded-2xl border-2 border-[#CFE0FF] bg-[#F4F8FF] p-4"><IconTile icon="account-balance" color="#1769FF" /><View className="flex-1"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-primary">Local</Text><Text className="mt-1 text-sm font-extrabold text-foreground">{selectedLocation.name}</Text><Text className="mt-1 text-xs leading-4 text-muted">Everyday services: water, roads, refuse and street lighting.</Text></View><MaterialIcons name="check-circle" size={21} color="#1769FF" /></View></View>
 
         <View className="mt-7"><SectionHeader eyebrow="Verified channels" title="Start with the right office" /></View>
