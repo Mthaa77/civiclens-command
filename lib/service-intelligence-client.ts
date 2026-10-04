@@ -25,3 +25,22 @@ export async function fetchServiceIntelligence(service: string): Promise<Service
     return undefined;
   }
 }
+
+export type KnownProblem = ServiceNotice & { confidence: string; scope: string };
+
+export type KnownProblemIntelligence = ServiceIntelligence & {
+  knownProblems: KnownProblem[];
+  hasPotentialKnownProblem: boolean;
+};
+
+export async function fetchKnownProblems(service: string): Promise<KnownProblemIntelligence | undefined> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/civic/known-problems?service=${encodeURIComponent(service)}`,
+    );
+    if (!response.ok) return undefined;
+    return (await response.json()) as KnownProblemIntelligence;
+  } catch {
+    return undefined;
+  }
+}

@@ -76,6 +76,40 @@ function stripHtml(value: string) {
   return value.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&#8211;/g, "–").replace(/&#8217;/g, "’").replace(/\s+/g, " ").trim();
 }
 
+async function extractKnownProblems(service: string) {
+  const intelligence = await extractServiceNotices(service);
+  const knownProblems = intelligence.notices.map((notice) => ({
+    title: notice.title,
+    source: notice.source,
+    authority: notice.authority,
+    confidence: "published_official_notice",
+    scope: "Check the official notice for affected areas; CivicLens does not infer your exact location from the notice title.",
+  }));
+  if (service === "electricity") {
+    try {
+      const response = await fetch(POWER_FAILURE_URL, { signal: AbortSignal.timeout(7000) });
+      const text = response.ok ? stripHtml(await response.text()) : "";
+      const lower = text.toLowerCase();
+      if (response.ok && (lower.includes("known problems") || lower.includes("outage"))) {
+        knownProblems.push({
+          title: "Tshwane public power outage system has current outage information",
+          source: POWER_FAILURE_URL,
+          authority: "Official",
+          confidence: "official_outage_system_available",
+          scope: "Use the official outage map and progress checker to determine whether your area is already listed.",
+        });
+      }
+    } catch {
+      // Keep notice-based intelligence available if the outage system cannot be reached.
+    }
+  }
+  return {
+    ...intelligence,
+    knownProblems,
+    hasPotentialKnownProblem: knownProblems.length > 0,
+  };
+}
+
 async function extractServiceNotices(service: string) {
   const [noticesResponse, plannedResponse] = await Promise.all([
     fetch(SERVICE_NOTICE_URL, { signal: AbortSignal.timeout(7000) }),
@@ -257,7 +291,7 @@ export default {
     if (url.pathname.startsWith("/api/trpc/")) return handleTRPC(request, env.DB);
     if (url.pathname === "/api/civic/status") return json(await civicStatus());
     if (url.pathname === "/api/civic/service-pulse") return json(await servicePulse());
-    if (url.pathname === "/api/civic/service-intelligence") { const service = url.searchParams.get("service")?.trim() || "water"; return json(await extractServiceNotices(service)); }
+    if (url.pathname === "/api/civic/service-intelligence") { const service = url.searchParams.get("service")?.trim() || "water"; return json(await extractServiceNotices(service)); }\n    if (url.pathname === "/api/civic/known-problems") { const service = url.searchParams.get("service")?.trim() || "water"; return json(await extractKnownProblems(service)); }
     if (url.pathname === "/api/civic/insights") return json({ generatedAt: new Date().toISOString(), insights: connectedInsights });
     if (url.pathname === "/api/civic/reports" && request.method === "GET") {
       const ownerToken = url.searchParams.get("ownerToken")?.trim().slice(0, 128) || "";

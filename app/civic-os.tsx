@@ -8,7 +8,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { issueCategories, lessons } from "@/lib/civic-data";
 import { useCivic } from "@/lib/civic-store";
 import { fetchOfficialMunicipalContact, getWardOfficeContact, type OfficialMunicipalContact } from "@/lib/official-directory";
-import { fetchServiceIntelligence, type ServiceIntelligence } from "@/lib/service-intelligence-client";
+import { fetchKnownProblems, type KnownProblemIntelligence, fetchServiceIntelligence, type ServiceIntelligence } from "@/lib/service-intelligence-client";
 
 const RESPONSIBILITY: Record<string, { level: string; office: string; detail: string; lessonId: string; next: string }> = {
   streetlight: { level: "Local government", office: "Municipality / electricity or public lighting service", detail: "Start with the municipality's official service channel. A ward councillor may help follow up, but does not personally perform the repair.", lessonId: "lesson-1", next: "Document the location, describe the fault, then submit an official service report." },
@@ -28,6 +28,7 @@ export default function CivicOSScreen() {
   const { selectedLocation } = useCivic();
   const [municipalContact, setMunicipalContact] = useState<OfficialMunicipalContact | undefined>();
   const [serviceIntel, setServiceIntel] = useState<ServiceIntelligence | undefined>();
+  const [knownProblems, setKnownProblems] = useState<KnownProblemIntelligence | undefined>();
   const issue = useMemo(() => issueCategories.find((item) => item.id === selected) ?? issueCategories[0], [selected]);
   const route = RESPONSIBILITY[selected] ?? RESPONSIBILITY.streetlight;
   const lesson = lessons.find((item) => item.id === route.lessonId);
@@ -45,6 +46,7 @@ export default function CivicOSScreen() {
     let active = true;
     const service = selected === "electricity" ? "electricity" : selected === "water" ? "water" : selected === "pothole" || selected === "traffic" || selected === "flooding" ? "roads" : selected === "refuse" ? "refuse" : "water";
     fetchServiceIntelligence(service).then((data) => { if (active) setServiceIntel(data); });
+    fetchKnownProblems(service).then((data) => { if (active) setKnownProblems(data); });
     return () => { active = false; };
   }, [selected]);
 
@@ -120,6 +122,34 @@ export default function CivicOSScreen() {
           </View>
         </InfoCard>
 
+        <View className="mt-7"><SectionHeader eyebrow="2.8 · Known problem" title="Could this already be known?" /></View>
+        <InfoCard>
+          <View className="flex-row items-start gap-3">
+            <IconTile icon="manage-search" color="#F08A24" />
+            <View className="flex-1">
+              <View className="flex-row items-center gap-2"><Text className="text-sm font-extrabold text-foreground">Check before creating a duplicate report</Text><SourceBadge label="Official evidence" tone="official" /></View>
+              {knownProblems?.hasPotentialKnownProblem ? (
+                <>
+                  <Text className="mt-2 text-xs leading-4 text-muted">An official source has information that may relate to this service. That does not prove your specific street or property is affected.</Text>
+                  {knownProblems.knownProblems.slice(0, 2).map((problem) => (
+                    <View key={problem.title} className="mt-3 rounded-2xl border border-[#F2D6B5] bg-[#FFF9F1] p-3">
+                      <Text className="text-sm font-extrabold text-foreground">{problem.title}</Text>
+                      <Text className="mt-1 text-[11px] leading-4 text-muted">{problem.scope}</Text>
+                      <Pressable onPress={() => Linking.openURL(problem.source)} className="mt-3 flex-row items-center gap-1">
+                        <MaterialIcons name="open-in-new" size={15} color="#1769FF" />
+                        <Text className="text-xs font-extrabold text-primary">Check official problem →</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                  <Text className="mt-3 text-[11px] leading-4 text-muted">If the official source does not cover your location, you can still submit a new CivicLens case.</Text>
+                </>
+              ) : (
+                <Text className="mt-2 text-xs leading-4 text-muted">{knownProblems ? "No potential known problem was detected in the connected official sources. You can continue with a new report." : "Known-problem verification is temporarily unavailable. You can still continue with your report."}</Text>
+              )}
+            </View>
+          </View>
+        </InfoCard>
+
         <View className="mt-7"><SectionHeader eyebrow="3 · Learn" title="Know the process before you act" /></View>
         {lesson ? <Pressable onPress={() => router.push("/(tabs)/learn" as never)} style={({ pressed }) => pressed && { opacity: 0.72 }}><InfoCard><View className="flex-row items-center gap-3"><IconTile icon={lesson.icon} color="#7B61FF" /><View className="flex-1"><Text className="text-xs font-extrabold uppercase tracking-[1px] text-muted">Recommended lesson · {lesson.length}</Text><Text className="mt-1 text-base font-extrabold text-foreground">{lesson.title}</Text><Text className="mt-1 text-xs leading-4 text-muted">{lesson.summary}</Text></View><MaterialIcons name="chevron-right" size={21} color="#9AA5B1" /></View></InfoCard></Pressable> : null}
 
@@ -127,7 +157,7 @@ export default function CivicOSScreen() {
         <View className="rounded-[24px] border border-[#CDE9D7] bg-[#F1F9F3] p-5"><View className="flex-row items-start gap-3"><IconTile icon="task-alt" color="#27AE60" /><Text className="flex-1 text-sm font-bold leading-5 text-[#245D3A]">{route.next}</Text></View><View className="mt-4 border-t border-[#D7EBDD] pt-4"><Text className="text-xs leading-4 text-[#5A7563]">CivicLens can help document the case. It does not claim that a municipality has received, acknowledged or resolved a report unless that status is actually evidenced.</Text></View></View>
 
         <View className="mt-6 gap-2">
-          <ActionButton label={"Report this " + issue.label.toLowerCase()} icon="add-circle-outline" onPress={() => router.push(("/(tabs)/report?issue=" + encodeURIComponent(selected)) as never)} />
+          <ActionButton label={knownProblems?.hasPotentialKnownProblem ? "Report anyway" : "Report this " + issue.label.toLowerCase()} icon="add-circle-outline" onPress={() => router.push(("/(tabs)/report?issue=" + encodeURIComponent(selected)) as never)} />
           <ActionButton label="Open my government profile" icon="account-balance" variant="secondary" onPress={() => router.push("/(tabs)/government" as never)} />
         </View>
 
