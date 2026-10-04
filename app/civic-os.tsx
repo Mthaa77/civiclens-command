@@ -8,7 +8,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { issueCategories, lessons } from "@/lib/civic-data";
 import { useCivic } from "@/lib/civic-store";
 import { fetchOfficialMunicipalContact, getWardOfficeContact, type OfficialMunicipalContact } from "@/lib/official-directory";
-import { fetchServiceIntelligence, type ServiceIntelligence } from "@/lib/service-intelligence-client";
+import { fetchKnownProblems, type KnownProblemIntelligence, fetchServiceIntelligence, type ServiceIntelligence } from "@/lib/service-intelligence-client";
 
 const RESPONSIBILITY: Record<string, { level: string; office: string; detail: string; lessonId: string; next: string }> = {
   streetlight: { level: "Local government", office: "Municipality / electricity or public lighting service", detail: "Start with the municipality's official service channel. A ward councillor may help follow up, but does not personally perform the repair.", lessonId: "lesson-1", next: "Document the location, describe the fault, then submit an official service report." },
@@ -28,6 +28,7 @@ export default function CivicOSScreen() {
   const { selectedLocation } = useCivic();
   const [municipalContact, setMunicipalContact] = useState<OfficialMunicipalContact | undefined>();
   const [serviceIntel, setServiceIntel] = useState<ServiceIntelligence | undefined>();
+  const [knownProblems, setKnownProblems] = useState<KnownProblemIntelligence | undefined>();
   const issue = useMemo(() => issueCategories.find((item) => item.id === selected) ?? issueCategories[0], [selected]);
   const route = RESPONSIBILITY[selected] ?? RESPONSIBILITY.streetlight;
   const lesson = lessons.find((item) => item.id === route.lessonId);
@@ -45,6 +46,7 @@ export default function CivicOSScreen() {
     let active = true;
     const service = selected === "electricity" ? "electricity" : selected === "water" ? "water" : selected === "pothole" || selected === "traffic" || selected === "flooding" ? "roads" : selected === "refuse" ? "refuse" : "water";
     fetchServiceIntelligence(service).then((data) => { if (active) setServiceIntel(data); });
+    fetchKnownProblems(service).then((data) => { if (active) setKnownProblems(data); });
     return () => { active = false; };
   }, [selected]);
 
@@ -116,6 +118,34 @@ export default function CivicOSScreen() {
                   <Text className="mt-3 text-[10px] leading-4 text-muted">Checked {new Date(serviceIntel.checkedAt).toLocaleString("en-ZA")} · source availability does not prove a local outage.</Text>
                 </>
               ) : <Text className="mt-2 text-xs leading-4 text-muted">The official service feed could not be checked right now. You can still report the issue or open your municipality profile.</Text>}
+            </View>
+          </View>
+        </InfoCard>
+
+        <View className="mt-7"><SectionHeader eyebrow="2.8 · Known problem" title="Could this already be known?" /></View>
+        <InfoCard>
+          <View className="flex-row items-start gap-3">
+            <IconTile icon="manage-search" color="#F08A24" />
+            <View className="flex-1">
+              <View className="flex-row items-center gap-2"><Text className="text-sm font-extrabold text-foreground">Check before creating a duplicate report</Text><SourceBadge label="Official evidence" tone="official" /></View>
+              {knownProblems?.hasPotentialKnownProblem ? (
+                <>
+                  <Text className="mt-2 text-xs leading-4 text-muted">An official source has information that may relate to this service. That does not prove your specific street or property is affected.</Text>
+                  {knownProblems.knownProblems.slice(0, 2).map((problem) => (
+                    <View key={problem.title} className="mt-3 rounded-2xl border border-[#F2D6B5] bg-[#FFF9F1] p-3">
+                      <Text className="text-sm font-extrabold text-foreground">{problem.title}</Text>
+                      <Text className="mt-1 text-[11px] leading-4 text-muted">{problem.scope}</Text>
+                      <Pressable onPress={() => Linking.openURL(problem.source)} className="mt-3 flex-row items-center gap-1">
+                        <MaterialIcons name="open-in-new" size={15} color="#1769FF" />
+                        <Text className="text-xs font-extrabold text-primary">Check official problem →</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                  <Text className="mt-3 text-[11px] leading-4 text-muted">If the official source does not cover your location, you can still submit a new CivicLens case.</Text>
+                </>
+              ) : (
+                <Text className="mt-2 text-xs leading-4 text-muted">{knownProblems ? "No potential known problem was detected in the connected official sources. You can continue with a new report." : "Known-problem verification is temporarily unavailable. You can still continue with your report."}</Text>
+              )}
             </View>
           </View>
         </InfoCard>
