@@ -8,6 +8,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { issueCategories, lessons } from "@/lib/civic-data";
 import { useCivic } from "@/lib/civic-store";
 import { fetchOfficialMunicipalContact, getWardOfficeContact, type OfficialMunicipalContact } from "@/lib/official-directory";
+import { fetchServiceIntelligence, type ServiceIntelligence } from "@/lib/service-intelligence-client";
 
 const RESPONSIBILITY: Record<string, { level: string; office: string; detail: string; lessonId: string; next: string }> = {
   streetlight: { level: "Local government", office: "Municipality / electricity or public lighting service", detail: "Start with the municipality's official service channel. A ward councillor may help follow up, but does not personally perform the repair.", lessonId: "lesson-1", next: "Document the location, describe the fault, then submit an official service report." },
@@ -26,6 +27,7 @@ export default function CivicOSScreen() {
   const [selected, setSelected] = useState("streetlight");
   const { selectedLocation } = useCivic();
   const [municipalContact, setMunicipalContact] = useState<OfficialMunicipalContact | undefined>();
+  const [serviceIntel, setServiceIntel] = useState<ServiceIntelligence | undefined>();
   const issue = useMemo(() => issueCategories.find((item) => item.id === selected) ?? issueCategories[0], [selected]);
   const route = RESPONSIBILITY[selected] ?? RESPONSIBILITY.streetlight;
   const lesson = lessons.find((item) => item.id === route.lessonId);
@@ -38,6 +40,13 @@ export default function CivicOSScreen() {
     });
     return () => { active = false; };
   }, [selectedLocation.code]);
+
+  useEffect(() => {
+    let active = true;
+    const service = selected === "electricity" ? "electricity" : selected === "water" ? "water" : selected === "pothole" || selected === "traffic" || selected === "flooding" ? "roads" : selected === "refuse" ? "refuse" : "water";
+    fetchServiceIntelligence(service).then((data) => { if (active) setServiceIntel(data); });
+    return () => { active = false; };
+  }, [selected]);
 
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
@@ -89,6 +98,24 @@ export default function CivicOSScreen() {
               {wardOffice?.whatsapp ? (
                 <Text className="mt-3 text-[11px] leading-4 text-muted">Published ward-office channel: {wardOffice.whatsapp} · {wardOffice.checkedLabel}</Text>
               ) : null}
+            </View>
+          </View>
+        </InfoCard>
+
+        <View className="mt-7"><SectionHeader eyebrow="2.7 · Check first" title="Service intelligence" /></View>
+        <InfoCard>
+          <View className="flex-row items-start gap-3">
+            <IconTile icon="fact-check" color="#1769FF" />
+            <View className="flex-1">
+              <View className="flex-row items-center gap-2"><Text className="text-sm font-extrabold text-foreground">Check official notices before reporting</Text><SourceBadge label="Official feed" tone="official" /></View>
+              {serviceIntel ? (
+                <>
+                  <Text className="mt-2 text-xs leading-4 text-muted">{serviceIntel.notices.length ? `${serviceIntel.notices.length} relevant published notice(s) found.` : "No matching published notice was detected in the connected official service-interruption feed."}</Text>
+                  {serviceIntel.notices.slice(0, 2).map((notice) => <Pressable key={notice.title} onPress={() => Linking.openURL(notice.source)} className="mt-3 rounded-2xl border border-border bg-background p-3"><Text className="text-sm font-extrabold text-foreground">{notice.title}</Text><Text className="mt-1 text-[11px] font-semibold text-primary">Open official notice →</Text></Pressable>)}
+                  <Text className="mt-3 text-xs leading-4 text-muted">{serviceIntel.planned}</Text>
+                  <Text className="mt-3 text-[10px] leading-4 text-muted">Checked {new Date(serviceIntel.checkedAt).toLocaleString("en-ZA")} · source availability does not prove a local outage.</Text>
+                </>
+              ) : <Text className="mt-2 text-xs leading-4 text-muted">The official service feed could not be checked right now. You can still report the issue or open your municipality profile.</Text>}
             </View>
           </View>
         </InfoCard>
