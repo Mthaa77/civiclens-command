@@ -110,13 +110,24 @@ async function extractKnownProblems(service: string) {
   };
 }
 
+async function fetchOfficialPage(url: string, timeoutMs = 20000) {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+    return { response, error: null as string | null };
+  } catch (error) {
+    return { response: null, error: error instanceof Error ? error.message : "unknown_error" };
+  }
+}
+
 async function extractServiceNotices(service: string) {
-  const [noticesResponse, plannedResponse] = await Promise.all([
-    fetch(SERVICE_NOTICE_URL, { signal: AbortSignal.timeout(7000) }),
-    fetch(PLANNED_INTERRUPTION_URL, { signal: AbortSignal.timeout(7000) }),
+  const [notices, planned] = await Promise.all([
+    fetchOfficialPage(SERVICE_NOTICE_URL),
+    fetchOfficialPage(PLANNED_INTERRUPTION_URL),
   ]);
-  const noticesHtml = noticesResponse.ok ? await noticesResponse.text() : "";
-  const plannedText = plannedResponse.ok ? stripHtml(await plannedResponse.text()) : "";
+  const noticesResponse = notices.response;
+  const plannedResponse = planned.response;
+  const noticesHtml = noticesResponse?.ok ? await noticesResponse.text() : "";
+  const plannedText = plannedResponse?.ok ? stripHtml(await plannedResponse.text()) : "";
   const keywords: Record<string, string[]> = {
     water: ["water", "reservoir", "sanitation"],
     electricity: ["power", "electricity", "substation"],
@@ -130,7 +141,7 @@ async function extractServiceNotices(service: string) {
   const uniqueHeadings = [...new Set(headings)].slice(0, 5);
   const plannedNone = plannedText.toLowerCase().includes("no " + (service === "roads" ? "other" : service) + " service interruptions");
   return {
-    sourceReachable: noticesResponse.ok && plannedResponse.ok,
+    sourceReachable: Boolean(noticesResponse?.ok && plannedResponse?.ok),
     checkedAt: new Date().toISOString(),
     service,
     notices: uniqueHeadings.map((title) => ({
