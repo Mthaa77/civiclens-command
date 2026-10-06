@@ -84,3 +84,14 @@ The same scheduler can later add:
 - notification workflows after verified changes
 
 The first version deliberately stays source-first and avoids claiming a local incident unless authoritative evidence supports it.
+
+## Change detection
+
+From the second completed run onward, the latest-check API compares the newest result with the previous run for each service. Civic Pulse surfaces:
+- new matching official notices
+- source recovery
+- source degradation
+- planned-interruption summary changes
+- fewer matching notices
+
+A change is a signal for review, not proof of a local outage or resolution. CivicLens continues to distinguish source availability from on-the-ground service conditions.
