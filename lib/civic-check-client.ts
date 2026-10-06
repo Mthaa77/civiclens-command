@@ -18,9 +18,18 @@ export type CivicCheckResult = {
   checked_at: string;
 };
 
+export type CivicCheckChange = {
+  service: string;
+  type: string;
+  label: string;
+  detail: string;
+};
+
 export type CivicCheckLatest = {
   run: CivicCheckRun | null;
+  previousRun?: CivicCheckRun | null;
   results: CivicCheckResult[];
+  changes: CivicCheckChange[];
 };
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://civiclens-command.tshepisokadiaka83.workers.dev";
