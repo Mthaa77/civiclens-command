@@ -87,6 +87,40 @@ export default function CivicPulseScreen() {
         </View>
 
         <View className="mt-8">
+          <SectionHeader eyebrow="Change detection" title="What changed since the last check" />
+          <View className="mt-4 rounded-[24px] border border-border bg-surface overflow-hidden">
+            {(latest?.changes?.length ?? 0) === 0 ? (
+              <View className="p-5">
+                <Text className="font-display text-base font-extrabold text-foreground">
+                  {latest?.previousRun ? "No material changes detected." : "Change detection starts after the second run."}
+                </Text>
+                <Text className="mt-2 text-sm leading-5 text-muted">
+                  {latest?.previousRun
+                    ? "The latest hourly check matches the previous signal across connected services."
+                    : "CivicLens needs two completed hourly checks before it can compare service signals."}
+                </Text>
+              </View>
+            ) : (
+              latest?.changes.map((change, index) => (
+                <View key={change.service} className="px-4 py-4" style={{ borderBottomWidth: index === latest.changes.length - 1 ? 0 : 1, borderBottomColor: "#DDE6E4" }}>
+                  <View className="flex-row items-start">
+                    <View className="mt-0.5 h-9 w-9 items-center justify-center rounded-full bg-[#FFF5D9]">
+                      <MaterialIcons name="change-history" size={18} color="#A96D00" />
+                    </View>
+                    <View className="ml-3 flex-1">
+                      <Text className="text-sm font-extrabold text-foreground">{change.label}</Text>
+                      <Text className="mt-1 text-xs font-bold uppercase tracking-[0.8px] text-primary">{change.service}</Text>
+                      <Text className="mt-1 text-xs leading-4 text-muted">{change.detail}</Text>
+                    </View>
+                    <StatusPill label="NEW" tone="warning" compact />
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        </View>
+
+        <View className="mt-8">
           <SectionHeader eyebrow="Hourly checks" title="What CivicLens is watching" />
           <View className="mt-4 gap-3">
             {SERVICES.map((service) => {
