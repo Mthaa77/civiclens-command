@@ -1,47 +1,205 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
-import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
-import { ActionButton, CivicDataPulse, CivicMark, IconTile, InfoCard, SectionHeader, SourceBadge, TrustStrip } from "@/components/civic-ui";
+import {
+  ActionButton,
+  CivicContextBar,
+  CivicDataPulse,
+  CivicHero,
+  CivicMetric,
+  IconTile,
+  SectionHeader,
+  SignalCard,
+  SourceBadge,
+  StatusPill,
+  TrustStrip,
+} from "@/components/civic-ui";
 import { ScreenContainer } from "@/components/screen-container";
-import { issueCategories, lessons, notices } from "@/lib/civic-data";
+import { issueCategories } from "@/lib/civic-data";
+import { serviceStateLabel } from "@/lib/service-intelligence";
 import { useCivic } from "@/lib/civic-store";
+import { trpc } from "@/lib/trpc";
 
 export default function HomeScreen() {
   const { cases, selectedLocation } = useCivic();
+  const pulse = trpc.civic.servicePulse.useQuery(undefined, { staleTime: 60_000, retry: 1 });
   const openCases = cases.filter((item) => !["Resolved", "Closed"].includes(item.status)).length;
+  const latestCase = cases[0];
+  const feeds = pulse.data?.feeds ?? [];
+  const connectedSources = pulse.data?.sourceChecks.filter((source) => source.connected).length ?? 0;
+  const ward = selectedLocation.wardNumber ? `Ward ${selectedLocation.wardNumber}` : undefined;
   const go = (path: string) => router.push(path as never);
-  const wardLabel = selectedLocation.wardNumber ? `Ward ${selectedLocation.wardNumber}` : "Ward not selected";
 
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 132 }}>
         <View className="flex-row items-center justify-between py-4">
-          <View className="flex-row items-center gap-3"><CivicMark compact /><View><Text className="font-display text-lg font-extrabold tracking-tight text-foreground">CivicLens</Text><Text className="text-[10px] font-bold uppercase tracking-[1.5px] text-muted">South Africa</Text></View></View>
-          <View className="flex-row items-center gap-2"><CivicDataPulse compact /><View accessibilityLabel="Notifications" className="h-10 w-10 items-center justify-center rounded-full border border-border bg-surface"><MaterialIcons name="notifications-none" size={21} color="#59636E" /></View></View>
+          <View className="flex-row items-center gap-3">
+            <View className="h-9 w-9 items-center justify-center rounded-[14px] bg-primary">
+              <MaterialIcons name="visibility" size={18} color="#FFFFFF" />
+            </View>
+            <View>
+              <Text className="font-display text-lg font-extrabold tracking-tight text-foreground">CivicLens</Text>
+              <Text className="text-[10px] font-bold uppercase tracking-[1.5px] text-muted">Your civic command centre</Text>
+            </View>
+          </View>
+          <CivicDataPulse compact />
         </View>
 
-        <View className="overflow-hidden rounded-[30px] p-6" style={{ backgroundColor: "#0B2030" }}>
-          <View className="absolute -right-10 -top-12 h-40 w-40 rounded-full border-[20px] border-[#173B58]" /><View className="absolute -bottom-16 -right-5 h-36 w-36 rounded-full border-[14px] border-[#16364F]" />
-          <View className="flex-row items-center justify-between"><SourceBadge label="Your civic command centre" tone="civic" /><View className="rounded-full bg-white/10 px-2.5 py-1"><Text className="text-[10px] font-extrabold uppercase tracking-[1px] text-[#B9D5FF]">Today</Text></View></View>
-          <Text style={{ color: "#FFFFFF", fontFamily: "SpaceGrotesk_700Bold" }} className="mt-5 max-w-[310px] text-[31px] font-extrabold leading-9">Make your next civic move count.</Text>
-          <Text style={{ color: "#B8C9D8", fontFamily: "Inter_400Regular" }} className="mt-3 max-w-[315px] text-sm leading-5">Report with confidence, reach the right office, and keep a clear record from first signal to resolution.</Text>
-          <View className="mt-5 flex-row gap-3"><ActionButton label="I have a problem" icon="assistant" onPress={() => go("/civic-os")} /><ActionButton label="Government" icon="account-balance" variant="secondary" onPress={() => go("/(tabs)/government")} /></View>
+        <CivicContextBar municipality={selectedLocation.name} ward={selectedLocation.wardNumber} updated="Official location profile" />
+
+        <View className="mt-4">
+          <CivicHero
+            eyebrow="Start here"
+            title="What do you need help with?"
+            detail="Tell CivicLens what is wrong. We’ll help you understand the likely responsibility, check available official signals, and choose the next documented step."
+            action={
+              <View className="flex-row gap-2">
+                <View className="flex-1">
+                  <ActionButton label="I have a problem" icon="add-circle-outline" onPress={() => go("/civic-os")} />
+                </View>
+                <View className="flex-1">
+                  <ActionButton label="My cases" icon="folder-open" variant="secondary" onPress={() => go("/(tabs)/cases")} />
+                </View>
+              </View>
+            }
+          />
         </View>
 
-        <View className="mt-4 rounded-[24px] border border-[#CFE0FF] bg-[#F4F8FF] p-4"><View className="flex-row items-center gap-3"><View className="h-10 w-10 items-center justify-center rounded-[14px] bg-[#DCE9FF]"><MaterialIcons name="location-on" size={20} color="#1F5EFF" /></View><View className="flex-1"><Text className="text-[10px] font-extrabold uppercase tracking-[1.3px] text-primary">Your civic profile</Text><Text className="mt-1 text-base font-extrabold text-foreground">{selectedLocation.name}</Text><Text className="mt-1 text-xs text-muted">{wardLabel} · {selectedLocation.province}</Text></View><Pressable onPress={() => go("/(tabs)/government")} style={({ pressed }) => pressed && { opacity: 0.6 }}><MaterialIcons name="edit" size={17} color="#1F5EFF" /></Pressable></View><View className="mt-3 flex-row items-center justify-between border-t border-[#DCE8F6] pt-3"><Text className="text-[11px] font-semibold text-muted">{selectedLocation.wardNumber ? "Precise routing enabled" : "Choose a ward for precise routing"}</Text><Text className="text-[11px] font-extrabold text-primary">{selectedLocation.code}</Text></View></View>
+        <View className="mt-4 flex-row gap-2">
+          <CivicMetric value={openCases} label="Open cases" tone={openCases ? "warning" : "official"} />
+          <CivicMetric value={`${connectedSources}/3`} label="Sources live" tone={connectedSources === 3 ? "official" : "warning"} />
+          <CivicMetric value={feeds.length || 4} label="Service areas" tone="civic" />
+        </View>
 
-        <View className="mt-4 flex-row gap-3"><Pressable onPress={() => go("/(tabs)/cases")} className="flex-1"><InfoCard><Text className="text-[10px] font-extrabold uppercase tracking-[1px] text-primary">Case engine</Text><Text className="mt-1 text-base font-extrabold text-foreground">{openCases} active case{openCases===1?"":"s"}</Text><Text className="mt-1 text-xs leading-4 text-muted">Track your private timeline</Text></InfoCard></Pressable><Pressable onPress={() => go("/(tabs)/government")} className="flex-1"><InfoCard><Text className="text-[10px] font-extrabold uppercase tracking-[1px] text-primary">Routing</Text><Text className="mt-1 text-base font-extrabold text-foreground">{wardLabel}</Text><Text className="mt-1 text-xs leading-4 text-muted">Improve local routing</Text></InfoCard></Pressable></View><View className="mt-8"><SectionHeader eyebrow="Start with your situation" title="What needs attention?" action="Open Civic OS" onAction={() => go("/civic-os")} /><FlatList data={issueCategories.slice(0, 4)} numColumns={2} scrollEnabled={false} columnWrapperStyle={{ gap: 10 }} contentContainerStyle={{ gap: 10 }} keyExtractor={(item) => item.id} renderItem={({ item }) => <Pressable onPress={() => go("/civic-os")} style={({ pressed }) => [{ flex: 1 }, pressed && { opacity: 0.72 }]}><View className="rounded-[22px] border border-border bg-surface p-4"><IconTile icon={item.icon} color={item.accent} size="small" /><Text className="mt-3 text-sm font-extrabold text-foreground">{item.label}</Text><Text className="mt-1 text-xs leading-4 text-muted" numberOfLines={2}>{item.hint}</Text></View></Pressable>} /></View>
+        <View className="mt-8">
+          <SectionHeader eyebrow="Choose a starting point" title="Common problems" action="See all" onAction={() => go("/civic-os")} />
+          <View className="flex-row flex-wrap gap-2.5">
+            {issueCategories.slice(0, 6).map((item) => (
+              <Pressable
+                key={item.id}
+                onPress={() => go(`/civic-os?issue=${encodeURIComponent(item.id)}`)}
+                accessibilityRole="button"
+                style={({ pressed }) => [{ width: "31.8%" }, pressed && { opacity: 0.72, transform: [{ scale: 0.985 }] }]}
+              >
+                <View className="min-h-[108px] rounded-[22px] border border-border bg-surface p-3.5">
+                  <IconTile icon={item.icon} color={item.accent} size="small" />
+                  <Text className="mt-3 text-xs font-extrabold leading-4 text-foreground">{item.label}</Text>
+                  <Text className="mt-1 text-[10px] leading-3.5 text-muted" numberOfLines={2}>{item.hint}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        </View>
 
-        <View className="mt-8"><SectionHeader eyebrow="Connected civic brief" title="What is true around you?" /><View className="rounded-[26px] p-5" style={{ backgroundColor: "#102A3E" }}><View className="flex-row items-start justify-between"><View className="flex-1"><Text className="text-[10px] font-extrabold uppercase tracking-[1.4px] text-[#A9C9FF]">Official location signal</Text><Text className="mt-2 font-display text-xl font-extrabold text-white">{selectedLocation.name}</Text><Text className="mt-1 text-sm text-[#B8C9D8]">{selectedLocation.district} · {selectedLocation.province}</Text></View><View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#1B4564]"><MaterialIcons name="verified" size={23} color="#A9C9FF" /></View></View><View className="mt-5 flex-row gap-2"><View className="flex-1 rounded-2xl bg-white/10 p-3"><Text className="text-[10px] uppercase tracking-[1px] text-[#B8C9D8]">Ward</Text><Text className="mt-1 text-sm font-extrabold text-white">{selectedLocation.wardNumber ? `#${selectedLocation.wardNumber}` : "Select"}</Text></View><View className="flex-1 rounded-2xl bg-white/10 p-3"><Text className="text-[10px] uppercase tracking-[1px] text-[#B8C9D8]">Routing</Text><Text className="mt-1 text-sm font-extrabold text-white">{selectedLocation.wardNumber ? "Precise" : "Municipal"}</Text></View></View><Pressable onPress={() => go("/directory")} style={({ pressed }) => pressed && { opacity: 0.7 }}><Text className="mt-4 text-xs font-extrabold text-[#A9C9FF]">Open official civic directory →</Text></Pressable></View></View>
+        <View className="mt-8">
+          <View className="mb-4 flex-row items-end justify-between">
+            <View className="flex-1">
+              <Text className="mb-1 text-[10px] font-extrabold uppercase tracking-[1.6px] text-primary">Civic situation</Text>
+              <Text className="font-display text-[22px] font-extrabold leading-7 tracking-[-0.4px] text-foreground">What do the sources say?</Text>
+            </View>
+            <Pressable onPress={() => go("/intelligence")} accessibilityRole="button">
+              <Text className="text-xs font-extrabold text-primary">Open pulse</Text>
+            </Pressable>
+          </View>
 
-        <Pressable onPress={() => go("/intelligence")} style={({ pressed }) => pressed && { opacity: 0.75 }}><View className="mt-3 flex-row items-center gap-3 rounded-[24px] border border-[#D7E5FF] bg-[#F4F8FF] p-4"><View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#DCE9FF]"><MaterialIcons name="insights" size={22} color="#1F5EFF" /></View><View className="flex-1"><Text className="text-[10px] font-extrabold uppercase tracking-[1.2px] text-primary">Beyond the dashboard</Text><Text className="mt-1 text-base font-extrabold text-foreground">Open Civic Intelligence</Text><Text className="mt-1 text-xs leading-4 text-muted">See live service pulse, source coverage, and what connected data can reveal.</Text></View><MaterialIcons name="arrow-forward" size={20} color="#1F5EFF" /></View></Pressable>
+          <View className="rounded-[24px] border border-[#D8E5F5] bg-[#F5F9FF] p-4">
+            <View className="flex-row items-center">
+              <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-[#DCE9FF]">
+                <MaterialIcons name="radar" size={21} color="#1F5EFF" />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-sm font-extrabold text-foreground">Connected civic signals</Text>
+                <Text className="mt-1 text-[11px] leading-4 text-muted">
+                  {pulse.isLoading ? "Checking connected sources…" : pulse.data?.sourceReachable ? "Official service information is reachable. Ward-level impact still needs verification." : "The municipal service source could not be verified right now."}
+                </Text>
+              </View>
+              <StatusPill label={pulse.isLoading ? "CHECKING" : pulse.data?.sourceReachable ? "VERIFIED" : "UNAVAILABLE"} tone={pulse.isLoading ? "warning" : pulse.data?.sourceReachable ? "official" : "error"} compact />
+            </View>
+          </View>
 
-        <View className="mt-8"><SectionHeader eyebrow="Learn in plain language" title="One useful idea, right now" action="Explore learn" onAction={() => go("/(tabs)/learn")} /><Pressable onPress={() => go("/(tabs)/learn")} style={({ pressed }) => pressed && { opacity: 0.75 }}><InfoCard><View className="flex-row gap-3"><IconTile icon={lessons[0].icon} color="#7B61FF" /><View className="flex-1"><View className="flex-row items-center justify-between"><Text className="text-xs font-bold text-primary">{lessons[0].category}</Text><Text className="text-xs font-semibold text-muted">{lessons[0].length}</Text></View><Text className="mt-2 text-base font-extrabold text-foreground">{lessons[0].title}</Text><Text className="mt-1 text-sm leading-5 text-muted">{lessons[0].summary}</Text></View></View></InfoCard></Pressable></View>
+          <View className="mt-2.5 gap-2">
+            {feeds.slice(0, 3).map((feed) => (
+              <SignalCard
+                key={feed.id}
+                icon={feed.icon}
+                title={feed.label}
+                detail={feed.headline}
+                status={serviceStateLabel(feed.state)}
+                tone={feed.state === "unknown" ? "error" : feed.state === "stable" ? "official" : "warning"}
+                onPress={() => go("/intelligence")}
+              />
+            ))}
+          </View>
 
-        <View className="mt-8"><SectionHeader eyebrow="Participation" title="Your next civic signal" />{notices.slice(0, 2).map((notice) => <View key={notice.id} className="mb-2 flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-3"><IconTile icon={notice.icon} color="#1769FF" size="small" /><View className="flex-1"><Text className="text-sm font-extrabold text-foreground">{notice.title}</Text><Text className="mt-1 text-xs text-muted">{notice.deadline}</Text></View><MaterialIcons name="chevron-right" size={20} color="#9AA5B1" /></View>)}</View>
+          {!feeds.length && !pulse.isLoading ? (
+            <View className="mt-2.5 rounded-[20px] border border-dashed border-border bg-surface p-4">
+              <Text className="text-sm font-extrabold text-foreground">No live service signal yet</Text>
+              <Text className="mt-1 text-xs leading-4 text-muted">You can still report a problem or open the Civic Intelligence page to retry the connected sources.</Text>
+            </View>
+          ) : null}
+        </View>
 
-        <View className="mt-6"><TrustStrip/></View><View className="mt-7 rounded-3xl border border-[#D8E5F5] bg-[#F5F9FF] p-4"><View className="flex-row items-start gap-3"><View className="h-10 w-10 items-center justify-center rounded-2xl bg-[#DDEBFF]"><MaterialIcons name="verified" size={21} color="#1769FF" /></View><View className="flex-1"><Text className="text-base font-extrabold text-[#11243B]">Trust is part of the product</Text><Text className="mt-1 text-sm leading-5 text-[#5B7084]">Official records stay labelled, community signals stay distinct, and connected sources show when they were last checked.</Text><View className="mt-3"><CivicDataPulse /></View></View></View></View>
+        <View className="mt-8">
+          <SectionHeader eyebrow="Your civic record" title="Keep the thread" action="View cases" onAction={() => go("/(tabs)/cases")} />
+          {latestCase ? (
+            <Pressable onPress={() => go(`/case/${latestCase.id}`)} accessibilityRole="button">
+              <View className="rounded-[24px] border border-border bg-surface p-4">
+                <View className="flex-row items-start">
+                  <IconTile icon="folder-open" color="#1F5EFF" />
+                  <View className="ml-3 flex-1">
+                    <View className="flex-row items-start justify-between gap-2">
+                      <Text className="flex-1 text-sm font-extrabold text-foreground">{latestCase.title}</Text>
+                      <StatusPill label={latestCase.status === "Follow-up due" ? "FOLLOW-UP" : latestCase.status.toUpperCase()} tone={latestCase.statusTone === "success" ? "official" : "warning"} compact />
+                    </View>
+                    <Text className="mt-2 text-xs text-muted">{latestCase.municipality} · {latestCase.ward}</Text>
+                    <View className="mt-3 flex-row items-center gap-2">
+                      <SourceBadge label={latestCase.visibility === "Private" ? "PRIVATE" : "COMMUNITY"} tone={latestCase.visibility === "Private" ? "civic" : "community"} />
+                      <Text className="text-[10px] text-muted">{latestCase.evidenceCount} evidence item{latestCase.evidenceCount === 1 ? "" : "s"}</Text>
+                      <Text className="ml-auto text-[10px] font-extrabold text-primary">Open case →</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </Pressable>
+          ) : (
+            <View className="rounded-[24px] border border-dashed border-border bg-surface p-5">
+              <Text className="text-base font-extrabold text-foreground">Your civic record starts here.</Text>
+              <Text className="mt-1 text-sm leading-5 text-muted">When you report a problem, CivicLens keeps a private timeline so you can return to the thread later.</Text>
+              <View className="mt-4"><ActionButton label="Start a report" icon="add-circle-outline" compact onPress={() => go("/civic-os")} /></View>
+            </View>
+          )}
+        </View>
+
+        <View className="mt-8">
+          <SectionHeader eyebrow="Know before you act" title="Government, explained simply" action="Learn" onAction={() => go("/(tabs)/learn")} />
+          <Pressable onPress={() => go("/(tabs)/learn")} accessibilityRole="button">
+            <View className="overflow-hidden rounded-[24px] border border-border bg-surface p-5">
+              <View className="flex-row items-start">
+                <View className="flex-1">
+                  <SourceBadge label="CIVICLENS EXPLAINER" tone="civic" />
+                  <Text className="mt-3 font-display text-xl font-extrabold leading-6 text-foreground">Who is actually responsible for this?</Text>
+                  <Text className="mt-2 text-sm leading-5 text-muted">Understand the difference between a municipality, ward councillor, province, and national government before you escalate.</Text>
+                </View>
+                <View className="ml-3 h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF2FF]"><MaterialIcons name="school" size={23} color="#1F5EFF" /></View>
+              </View>
+              <View className="mt-4 flex-row items-center"><Text className="text-xs font-extrabold text-primary">Learn → act</Text><View className="ml-3 h-px flex-1 bg-[#DDE6E4]" /><Text className="text-[10px] text-muted">Plain language</Text></View>
+            </View>
+          </Pressable>
+        </View>
+
+        <View className="mt-8">
+          <TrustStrip />
+          <View className="mt-3 rounded-[22px] border border-border bg-surface p-4">
+            <View className="flex-row items-center">
+              <MaterialIcons name="verified-user" size={19} color="#237A4B" />
+              <Text className="ml-2 flex-1 text-xs font-extrabold text-foreground">Evidence before certainty</Text>
+              <StatusPill label="SOURCE-AWARE" tone="official" compact />
+            </View>
+            <Text className="mt-2 text-[11px] leading-4 text-muted">CivicLens distinguishes official records, CivicLens explanations, community signals, and information that still needs verification.</Text>
+          </View>
+        </View>
       </ScrollView>
     </ScreenContainer>
   );
