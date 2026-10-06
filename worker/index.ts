@@ -396,7 +396,6 @@ export default {
     if (url.pathname === "/api/civic/insights") return json({ generatedAt: new Date().toISOString(), insights: connectedInsights });
     if (url.pathname === "/api/civic/check/latest") return json(await latestCivicCheck(env.DB));
     if (url.pathname === "/api/civic/check/history") return json(await civicCheckHistory(env.DB));
-    if (url.pathname === "/api/civic/check/run" && request.method === "POST") return json(await runCivicHourlyCheck(env.DB, "manual"), { status: 202 });
     if (url.pathname === "/api/civic/reports" && request.method === "GET") {
       const ownerToken = url.searchParams.get("ownerToken")?.trim().slice(0, 128) || "";
       if (!ownerToken) return json({ error: "ownerToken is required" }, { status: 400 });
