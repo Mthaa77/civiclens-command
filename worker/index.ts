@@ -225,16 +225,72 @@ async function runCivicHourlyCheck(db: D1Database, trigger = "cron") {
 }
 
 async function latestCivicCheck(db: D1Database) {
-  const run = await db.prepare(
-    "SELECT id, trigger, started_at, completed_at, status, services_checked, services_ok, services_degraded, error_count FROM civic_check_runs ORDER BY started_at DESC LIMIT 1"
-  ).first<Record<string, unknown>>();
-  if (!run) return { run: null, results: [] };
+  const runs = await db.prepare(
+    "SELECT id, trigger, started_at, completed_at, status, services_checked, services_ok, services_degraded, error_count FROM civic_check_runs ORDER BY started_at DESC LIMIT 2"
+  ).all();
+
+  const [run, previousRun] = runs.results as Array<Record<string, unknown>>;
+  if (!run) return { run: null, results: [], changes: [] };
 
   const rows = await db.prepare(
-    "SELECT service, source_reachable, notice_count, planned_summary, checked_at FROM civic_check_results WHERE run_id = ? ORDER BY service ASC"
+    "SELECT service, source_reachable, notice_count, planned_summary, checked_at, payload_json FROM civic_check_results WHERE run_id = ? ORDER BY service ASC"
   ).bind(run.id).all();
 
-  return { run, results: rows.results };
+  const previousRows = previousRun
+    ? await db.prepare(
+        "SELECT service, source_reachable, notice_count, planned_summary, checked_at, payload_json FROM civic_check_results WHERE run_id = ? ORDER BY service ASC"
+      ).bind(previousRun.id).all()
+    : { results: [] };
+
+  const previousByService = new Map(
+    (previousRows.results as Array<Record<string, unknown>>).map((item) => [String(item.service), item]),
+  );
+
+  const changes = (rows.results as Array<Record<string, unknown>>).flatMap((item) => {
+    const service = String(item.service);
+    const previous = previousByService.get(service);
+    if (!previous) return [];
+
+    const noticeDelta = Number(item.notice_count ?? 0) - Number(previous.notice_count ?? 0);
+    const sourceRecovered = Number(item.source_reachable ?? 0) === 1 && Number(previous.source_reachable ?? 0) === 0;
+    const sourceDegraded = Number(item.source_reachable ?? 0) === 0 && Number(previous.source_reachable ?? 0) === 1;
+    const plannedChanged = String(item.planned_summary ?? "") !== String(previous.planned_summary ?? "");
+
+    let type = "unchanged";
+    let label = "No material change detected";
+    let detail = "The latest check matches the previous hourly signal for this service.";
+
+    if (sourceRecovered) {
+      type = "source_recovered";
+      label = "Official source recovered";
+      detail = "The connected official source is reachable again.";
+    } else if (sourceDegraded) {
+      type = "source_degraded";
+      label = "Official source needs attention";
+      detail = "The connected official source could not be verified in the latest check.";
+    } else if (noticeDelta > 0) {
+      type = "new_notices";
+      label = `${noticeDelta} new official notice${noticeDelta === 1 ? "" : "s"} detected`;
+      detail = "The latest check found more matching official service notices than the previous run.";
+    } else if (noticeDelta < 0) {
+      type = "fewer_notices";
+      label = "Fewer official notices detected";
+      detail = "The latest check found fewer matching notices than the previous run.";
+    } else if (plannedChanged) {
+      type = "planned_change";
+      label = "Planned interruption signal changed";
+      detail = "The published planned-interruption summary differs from the previous hourly check.";
+    }
+
+    return [{ service, type, label, detail }];
+  }).filter((change) => change.type !== "unchanged");
+
+  return {
+    run,
+    previousRun: previousRun ?? null,
+    results: rows.results,
+    changes,
+  };
 }
 
 async function civicCheckHistory(db: D1Database) {
