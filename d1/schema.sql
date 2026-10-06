@@ -23,3 +23,30 @@ CREATE TABLE IF NOT EXISTS civic_report_events (
   FOREIGN KEY (report_id) REFERENCES civic_reports(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS civic_report_events_report_idx ON civic_report_events(report_id, created_at ASC);
+
+CREATE TABLE IF NOT EXISTS civic_check_runs (
+  id TEXT PRIMARY KEY,
+  trigger TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  completed_at TEXT,
+  status TEXT NOT NULL,
+  services_checked INTEGER NOT NULL DEFAULT 0,
+  services_ok INTEGER NOT NULL DEFAULT 0,
+  services_degraded INTEGER NOT NULL DEFAULT 0,
+  error_count INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS civic_check_runs_started_idx ON civic_check_runs(started_at DESC);
+
+CREATE TABLE IF NOT EXISTS civic_check_results (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  service TEXT NOT NULL,
+  source_reachable INTEGER NOT NULL DEFAULT 0,
+  notice_count INTEGER NOT NULL DEFAULT 0,
+  planned_summary TEXT,
+  checked_at TEXT NOT NULL,
+  payload_json TEXT,
+  FOREIGN KEY (run_id) REFERENCES civic_check_runs(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS civic_check_results_run_idx ON civic_check_results(run_id, service);
+CREATE INDEX IF NOT EXISTS civic_check_results_service_idx ON civic_check_results(service, checked_at DESC);
