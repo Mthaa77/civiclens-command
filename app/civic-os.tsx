@@ -64,6 +64,9 @@ export default function CivicOSScreen() {
             <View className="ml-3 h-11 w-11 items-center justify-center rounded-[16px] bg-[#10202B]"><MaterialIcons name="near-me" size={22} color="#FFFFFF" /></View>
           </View>
           <Text className="mt-3 text-sm leading-5 text-muted">Four clear moves: identify the issue, understand responsibility, check official evidence, then act.</Text>
+          <View className="mt-4">
+            <ActionButton label="Open Civic Pulse" icon="insights" variant="secondary" onPress={() => router.push("/civic-pulse")} />
+          </View>
         </View>
 
         <View className="rounded-[24px] border border-border bg-surface p-4">
