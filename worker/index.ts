@@ -148,6 +148,102 @@ async function extractServiceNotices(service: string) {
   };
 }
 
+
+const HOURLY_SERVICES = ["water", "electricity", "roads", "refuse"] as const;
+
+async function runCivicHourlyCheck(db: D1Database, trigger = "cron") {
+  const runId = crypto.randomUUID();
+  const startedAt = new Date().toISOString();
+  await db.prepare(
+    "INSERT INTO civic_check_runs (id, trigger, started_at, status) VALUES (?, ?, ?, ?)"
+  ).bind(runId, trigger, startedAt, "running").run();
+
+  const results = await Promise.all(HOURLY_SERVICES.map(async (service) => {
+    try {
+      const intelligence = await extractServiceNotices(service);
+      return {
+        service,
+        ok: intelligence.sourceReachable,
+        noticeCount: intelligence.notices.length,
+        planned: intelligence.planned,
+        checkedAt: intelligence.checkedAt,
+        payload: intelligence,
+      };
+    } catch (error) {
+      return {
+        service,
+        ok: false,
+        noticeCount: 0,
+        planned: "Check failed; the official source could not be verified.",
+        checkedAt: new Date().toISOString(),
+        payload: { service, sourceReachable: false, error: error instanceof Error ? error.message : "unknown_error" },
+      };
+    }
+  }));
+
+  for (const result of results) {
+    await db.prepare(
+      "INSERT INTO civic_check_results (id, run_id, service, source_reachable, notice_count, planned_summary, checked_at, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(
+      crypto.randomUUID(),
+      runId,
+      result.service,
+      result.ok ? 1 : 0,
+      result.noticeCount,
+      result.planned,
+      result.checkedAt,
+      JSON.stringify(result.payload),
+    ).run();
+  }
+
+  const completedAt = new Date().toISOString();
+  const okCount = results.filter((result) => result.ok).length;
+  const degradedCount = results.length - okCount;
+  await db.prepare(
+    "UPDATE civic_check_runs SET completed_at = ?, status = ?, services_checked = ?, services_ok = ?, services_degraded = ?, error_count = ? WHERE id = ?"
+  ).bind(
+    completedAt,
+    degradedCount === 0 ? "completed" : "degraded",
+    results.length,
+    okCount,
+    degradedCount,
+    degradedCount,
+    runId,
+  ).run();
+
+  return {
+    runId,
+    trigger,
+    startedAt,
+    completedAt,
+    status: degradedCount === 0 ? "completed" : "degraded",
+    servicesChecked: results.length,
+    servicesOk: okCount,
+    servicesDegraded: degradedCount,
+    results,
+  };
+}
+
+async function latestCivicCheck(db: D1Database) {
+  const run = await db.prepare(
+    "SELECT id, trigger, started_at, completed_at, status, services_checked, services_ok, services_degraded, error_count FROM civic_check_runs ORDER BY started_at DESC LIMIT 1"
+  ).first<Record<string, unknown>>();
+  if (!run) return { run: null, results: [] };
+
+  const rows = await db.prepare(
+    "SELECT service, source_reachable, notice_count, planned_summary, checked_at FROM civic_check_results WHERE run_id = ? ORDER BY service ASC"
+  ).bind(run.id).all();
+
+  return { run, results: rows.results };
+}
+
+async function civicCheckHistory(db: D1Database) {
+  const runs = await db.prepare(
+    "SELECT id, trigger, started_at, completed_at, status, services_checked, services_ok, services_degraded, error_count FROM civic_check_runs ORDER BY started_at DESC LIMIT 24"
+  ).all();
+  return { runs: runs.results };
+}
+
 const connectedInsights = [
   { id: "triage", title: "Cross-source triage", description: "Compare municipal notices with Treasury and ward-boundary sources before treating a service signal as confirmed." },
   { id: "reliability", title: "Reliability signal", description: "Separate official-source availability from a claim that a local service is actually failing." },
@@ -281,6 +377,10 @@ async function handleTRPC(request: Request, db: D1Database) {
 }
 
 export default {
+  async scheduled(controller: ScheduledController, env: { DB: D1Database }, ctx: ExecutionContext) {
+    ctx.waitUntil(runCivicHourlyCheck(env.DB, "cron"));
+  },
+
   async fetch(request: Request, env: { DB: D1Database; ASSETS?: { fetch(request: Request): Promise<Response> } }) {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
     const url = new URL(request.url);
@@ -294,6 +394,9 @@ export default {
     if (url.pathname === "/api/civic/service-intelligence") { const service = url.searchParams.get("service")?.trim() || "water"; return json(await extractServiceNotices(service)); }
     if (url.pathname === "/api/civic/known-problems") { const service = url.searchParams.get("service")?.trim() || "water"; return json(await extractKnownProblems(service)); }
     if (url.pathname === "/api/civic/insights") return json({ generatedAt: new Date().toISOString(), insights: connectedInsights });
+    if (url.pathname === "/api/civic/check/latest") return json(await latestCivicCheck(env.DB));
+    if (url.pathname === "/api/civic/check/history") return json(await civicCheckHistory(env.DB));
+    if (url.pathname === "/api/civic/check/run" && request.method === "POST") return json(await runCivicHourlyCheck(env.DB, "manual"), { status: 202 });
     if (url.pathname === "/api/civic/reports" && request.method === "GET") {
       const ownerToken = url.searchParams.get("ownerToken")?.trim().slice(0, 128) || "";
       if (!ownerToken) return json({ error: "ownerToken is required" }, { status: 400 });
