@@ -291,7 +291,8 @@ export default {
     if (url.pathname.startsWith("/api/trpc/")) return handleTRPC(request, env.DB);
     if (url.pathname === "/api/civic/status") return json(await civicStatus());
     if (url.pathname === "/api/civic/service-pulse") return json(await servicePulse());
-    if (url.pathname === "/api/civic/service-intelligence") { const service = url.searchParams.get("service")?.trim() || "water"; return json(await extractServiceNotices(service)); }\n    if (url.pathname === "/api/civic/known-problems") { const service = url.searchParams.get("service")?.trim() || "water"; return json(await extractKnownProblems(service)); }
+    if (url.pathname === "/api/civic/service-intelligence") { const service = url.searchParams.get("service")?.trim() || "water"; return json(await extractServiceNotices(service)); }
+    if (url.pathname === "/api/civic/known-problems") { const service = url.searchParams.get("service")?.trim() || "water"; return json(await extractKnownProblems(service)); }
     if (url.pathname === "/api/civic/insights") return json({ generatedAt: new Date().toISOString(), insights: connectedInsights });
     if (url.pathname === "/api/civic/reports" && request.method === "GET") {
       const ownerToken = url.searchParams.get("ownerToken")?.trim().slice(0, 128) || "";
