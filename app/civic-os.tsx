@@ -4,6 +4,7 @@ import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { useEffect, useMemo, useState } from "react";
 
 import { ActionButton, CivicContextBar, CivicStepper, CivicToast, IconTile, KnownProblemPanel, SourceBadge, SourceDrawer, StatusPill, TrustStrip } from "@/components/civic-ui";
+import { MotionPressable, Reveal } from "@/components/premium-motion";
 import { ScreenContainer } from "@/components/screen-container";
 import { issueCategories, lessons } from "@/lib/civic-data";
 import { useCivic } from "@/lib/civic-store";
@@ -56,7 +57,7 @@ export default function CivicOSScreen() {
   return (
     <ScreenContainer className="px-5" containerClassName="bg-background">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 145 }}>
-        <View className="pt-4 pb-5">
+        <Reveal><View className="pt-4 pb-5">
           <CivicContextBar municipality={selectedLocation.name} ward={selectedLocation.wardNumber} updated="Official location profile" />
           <View className="mt-5 flex-row items-center justify-between">
             <View className="flex-1">
@@ -69,13 +70,13 @@ export default function CivicOSScreen() {
           <View className="mt-4">
             <ActionButton label="Open Civic Pulse" icon="insights" variant="secondary" onPress={() => router.push("/civic-pulse")} />
           </View>
-        </View>
+        </View></Reveal>
 
-        <View className="rounded-[24px] border border-border bg-surface p-4">
+        <Reveal delay={80}><View className="rounded-[24px] border border-border bg-surface p-4">
           <CivicStepper steps={["Problem", "Responsibility", "Check", "Act"]} current={1} />
-        </View>
+        </View></Reveal>
 
-        <View className="mt-5 rounded-[30px] bg-foreground p-5" style={{ shadowColor: "#10202B", shadowOpacity: 0.16, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 5 }}>
+        <Reveal delay={140}><View className="mt-5 rounded-[30px] bg-foreground p-5" style={{ shadowColor: "#10202B", shadowOpacity: 0.16, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 5 }}>
           <View className="flex-row items-start">
             <View className="h-14 w-14 items-center justify-center rounded-[19px] bg-[#1F5EFF]"><MaterialIcons name={issue.icon} size={27} color="#FFFFFF" /></View>
             <View className="ml-4 flex-1">
@@ -88,25 +89,25 @@ export default function CivicOSScreen() {
             <StatusPill label="CIVICLENS GUIDE" tone="civic" compact />
             <Text className="ml-2 flex-1 text-[10px] text-[#AFC0CD]">Routing is guidance, not proof of responsibility.</Text>
           </View>
-        </View>
+        </View></Reveal>
 
-        <View className="mt-8">
+        <Reveal delay={200}><View className="mt-8">
           <Text className="text-[10px] font-extrabold uppercase tracking-[1.7px] text-primary">1 · Identify</Text>
           <Text className="mt-1 font-display text-[22px] font-extrabold text-foreground">What is happening?</Text>
           <Text className="mt-1 text-xs leading-4 text-muted">Pick the closest description. You can refine the details when you report.</Text>
           <View className="mt-4 flex-row flex-wrap gap-2">
             {issueCategories.map((item) => (
-              <Pressable key={item.id} onPress={() => setSelected(item.id)} accessibilityRole="button" accessibilityState={{ selected: selected === item.id }}>
+              <MotionPressable key={item.id} onPress={() => setSelected(item.id)}>
                 <View className={selected === item.id ? "flex-row items-center rounded-full bg-primary px-3 py-2.5" : "flex-row items-center rounded-full border border-border bg-surface px-3 py-2.5"}>
                   <MaterialIcons name={item.icon} size={15} color={selected === item.id ? "#FFFFFF" : item.accent} />
                   <Text className={selected === item.id ? "ml-1.5 text-xs font-extrabold text-white" : "ml-1.5 text-xs font-semibold text-foreground"}>{item.label}</Text>
                 </View>
-              </Pressable>
+              </MotionPressable>
             ))}
           </View>
-        </View>
+        </View></Reveal>
 
-        <View className="mt-8">
+        <Reveal delay={260}><View className="mt-8">
           <Text className="text-[10px] font-extrabold uppercase tracking-[1.7px] text-primary">2 · Understand</Text>
           <Text className="mt-1 font-display text-[22px] font-extrabold text-foreground">Who likely handles it?</Text>
           <View className="mt-4 overflow-hidden rounded-[26px] border border-[#CFE0FF] bg-[#F4F8FF]">
@@ -132,9 +133,9 @@ export default function CivicOSScreen() {
           <View className="mt-3">
             <SourceDrawer detail="Your municipality and ward profile help choose the starting office. They do not prove that every service fault belongs to that office." source={municipalContact?.website ? "Open official municipal website →" : undefined} onPress={municipalContact?.website ? () => Linking.openURL(municipalContact.website!) : undefined} />
           </View>
-        </View>
+        </View></Reveal>
 
-        <View className="mt-8">
+        <Reveal delay={320}><View className="mt-8">
           <Text className="text-[10px] font-extrabold uppercase tracking-[1.7px] text-primary">3 · Check</Text>
           <Text className="mt-1 font-display text-[22px] font-extrabold text-foreground">Before you report, check the record.</Text>
           <Text className="mt-1 text-xs leading-4 text-muted">CivicLens looks for relevant official signals first, so you can avoid duplicate reports without mistaking a broad notice for proof about your location.</Text>
@@ -176,9 +177,9 @@ export default function CivicOSScreen() {
           </View>
 
           <CivicToast icon={knownProblems?.hasPotentialKnownProblem ? "warning-amber" : "info-outline"} tone={knownProblems?.hasPotentialKnownProblem ? "warning" : "civic"} message={knownProblems?.hasPotentialKnownProblem ? "A possible match changes the next step: read the official notice first, then report if your exact location is not covered." : "A clean check does not mean the problem is absent. If you are experiencing it, you can still report it."} />
-        </View>
+        </View></Reveal>
 
-        <View className="mt-8">
+        <Reveal delay={380}><View className="mt-8">
           <Text className="text-[10px] font-extrabold uppercase tracking-[1.7px] text-primary">4 · Act</Text>
           <Text className="mt-1 font-display text-[22px] font-extrabold text-foreground">Choose the next move</Text>
           <View className="mt-4 rounded-[26px] border border-[#CDE9D7] bg-[#F1F9F3] p-5">
@@ -205,9 +206,9 @@ export default function CivicOSScreen() {
               </View>
             </Pressable>
           ) : null}
-        </View>
+        </View></Reveal>
 
-        <View className="mt-6 rounded-[24px] border border-border bg-surface p-4">
+        <Reveal delay={430}><View className="mt-6 rounded-[24px] border border-border bg-surface p-4">
           <View className="flex-row items-center">
             <MaterialIcons name="phone" size={17} color="#1F5EFF" />
             <View className="ml-3 flex-1">
@@ -217,14 +218,14 @@ export default function CivicOSScreen() {
             {municipalContact?.phone ? <Pressable onPress={() => Linking.openURL("tel:" + municipalContact.phone!.replaceAll(" ", ""))} className="rounded-full bg-[#EAF2FF] px-3 py-2"><Text className="text-[10px] font-extrabold text-primary">CALL</Text></Pressable> : null}
           </View>
           {wardOffice?.whatsapp ? <Text className="mt-3 text-[10px] leading-4 text-muted">Published ward-office channel: {wardOffice.whatsapp} · {wardOffice.checkedLabel}</Text> : null}
-        </View>
+        </View></Reveal>
 
-        <View className="mt-5 gap-2">
+        <Reveal delay={470}><View className="mt-5 gap-2">
           <ActionButton label={knownProblems?.hasPotentialKnownProblem ? "Report anyway" : "Report this " + issue.label.toLowerCase()} icon="add-circle-outline" onPress={() => router.push(reportPath as never)} />
           <ActionButton label="Open my government profile" icon="account-balance" variant="secondary" onPress={() => router.push("/(tabs)/government" as never)} />
-        </View>
+        </View></Reveal>
 
-        <View className="mt-5"><TrustStrip compact /></View>
+        <Reveal delay={510}><View className="mt-5"><TrustStrip compact /></View></Reveal>
       </ScrollView>
     </ScreenContainer>
   );
