@@ -189,6 +189,98 @@ export function KnownProblemPanel({
   );
 }
 
+
+export type CaseLifecycleStatus =
+  | "draft"
+  | "submitted"
+  | "validated"
+  | "routed"
+  | "acknowledged"
+  | "in_progress"
+  | "awaiting_authority"
+  | "awaiting_user"
+  | "resolved"
+  | "closed";
+
+const CASE_LIFECYCLE: Array<{ key: CaseLifecycleStatus; label: string; detail: string; tone: StatusTone }> = [
+  { key: "draft", label: "Draft", detail: "Prepared but not submitted", tone: "neutral" },
+  { key: "submitted", label: "Submitted", detail: "Your report was saved by CivicLens", tone: "civic" },
+  { key: "validated", label: "Validated", detail: "The case information was checked", tone: "civic" },
+  { key: "routed", label: "Routed", detail: "The relevant channel was identified", tone: "civic" },
+  { key: "acknowledged", label: "Acknowledged", detail: "The authority has acknowledged the report", tone: "official" },
+  { key: "in_progress", label: "In progress", detail: "Work is recorded as underway", tone: "official" },
+  { key: "awaiting_authority", label: "Awaiting authority", detail: "A response or action is pending", tone: "warning" },
+  { key: "awaiting_user", label: "Awaiting you", detail: "You may need to provide the next input", tone: "warning" },
+  { key: "resolved", label: "Resolved", detail: "The case is marked resolved", tone: "official" },
+  { key: "closed", label: "Closed", detail: "The case lifecycle is complete", tone: "neutral" },
+];
+
+function normalizeCaseStatus(status?: string): CaseLifecycleStatus {
+  const normalized = String(status ?? "submitted").trim().toLowerCase().replace(/\s+/g, "_");
+  if (normalized === "government_reference_recorded") return "submitted";
+  return CASE_LIFECYCLE.some((item) => item.key === normalized) ? normalized as CaseLifecycleStatus : "submitted";
+}
+
+export function CaseStatusRail({ status, compact = false }: { status?: string; compact?: boolean }) {
+  const current = normalizeCaseStatus(status);
+  const currentIndex = Math.max(0, CASE_LIFECYCLE.findIndex((item) => item.key === current));
+  const visible = compact
+    ? CASE_LIFECYCLE.filter((item) => ["submitted", "acknowledged", "in_progress", "awaiting_authority", "awaiting_user", "resolved", "closed"].includes(item.key))
+    : CASE_LIFECYCLE;
+
+  return (
+    <View className={compact ? "rounded-[22px] border border-border bg-surface p-4" : "rounded-[26px] border border-border bg-surface p-5"} style={styles.cardShadow}>
+      <View className="flex-row items-start justify-between">
+        <View className="flex-1">
+          <Text style={{ fontFamily: "Inter_700Bold" }} className="text-[10px] uppercase tracking-[1.4px] text-primary">Case status</Text>
+          <Text style={{ fontFamily: "SpaceGrotesk_700Bold" }} className="mt-1 text-xl tracking-[-0.3px] text-foreground">{CASE_LIFECYCLE[currentIndex]?.label ?? "Submitted"}</Text>
+          <Text className="mt-1 text-[11px] leading-4 text-muted">{CASE_LIFECYCLE[currentIndex]?.detail}</Text>
+        </View>
+        <StatusPill label={(CASE_LIFECYCLE[currentIndex]?.key ?? "submitted").replaceAll("_", " ").toUpperCase()} tone={CASE_LIFECYCLE[currentIndex]?.tone ?? "civic"} compact />
+      </View>
+      <View className="mt-5">
+        {visible.map((step, index) => {
+          const actualIndex = CASE_LIFECYCLE.findIndex((item) => item.key === step.key);
+          const done = actualIndex < currentIndex;
+          const active = actualIndex === currentIndex;
+          return (
+            <View key={step.key} className="flex-row">
+              <View className="mr-3 items-center">
+                <View className={active ? "h-7 w-7 items-center justify-center rounded-full bg-primary" : done ? "h-7 w-7 items-center justify-center rounded-full bg-[#E8F7EE]" : "h-7 w-7 items-center justify-center rounded-full bg-[#EEF2F3]"} >
+                  <MaterialIcons name={done ? "check" : active ? "radio-button-checked" : "radio-button-unchecked"} size={active ? 16 : 15} color={active ? "#FFFFFF" : done ? "#237A4B" : "#8A97A3"} />
+                </View>
+                {index < visible.length - 1 ? <View className="my-1 w-px flex-1" style={{ backgroundColor: done ? "#B7DCC8" : "#DCE4EC" }} /> : null}
+              </View>
+              <View className="flex-1 pb-4">
+                <View className="flex-row items-center">
+                  <Text style={{ fontFamily: "Inter_700Bold" }} className={active ? "text-sm text-primary" : done ? "text-sm text-foreground" : "text-sm text-muted"}>{step.label}</Text>
+                  {active ? <View className="ml-2"><StatusPill label="CURRENT" tone={step.tone} compact /></View> : null}
+                </View>
+                {!compact && <Text className="mt-1 text-[10px] leading-4 text-muted">{step.detail}</Text>}
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+export function StatusLegend() {
+  return (
+    <View className="rounded-[20px] border border-border bg-[#F8FAFB] px-4 py-3">
+      <Text style={{ fontFamily: "Inter_700Bold" }} className="text-[10px] uppercase tracking-[1.2px] text-muted">Status language</Text>
+      <View className="mt-3 flex-row flex-wrap gap-2">
+        <StatusPill label="OFFICIAL" tone="official" compact />
+        <StatusPill label="CIVICLENS" tone="civic" compact />
+        <StatusPill label="WAITING" tone="warning" compact />
+        <StatusPill label="ERROR / UNKNOWN" tone="error" compact />
+      </View>
+      <Text className="mt-2 text-[10px] leading-4 text-muted">A CivicLens status never implies government acknowledgement unless the official record supports it.</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   pressable: { borderRadius: 17 }, pressed: { opacity: 0.76, transform: [{ scale: 0.985 }] },
   cardShadow: { shadowColor: "#10202B", shadowOpacity: 0.055, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
