@@ -1,85 +1,72 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { Animated, Easing, Pressable, View } from "react-native";
 
-export function Reveal({ children, delay = 0, distance = 18 }: { children: ReactNode; delay?: number; distance?: number }) {
+export function Reveal({ children, delay = 0, distance = 16 }: { children: ReactNode; delay?: number; distance?: number }) {
   const progress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 650,
-      delay,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
+    const animation = Animated.timing(progress, { toValue: 1, duration: 560, delay, easing: Easing.out(Easing.cubic), useNativeDriver: true });
+    animation.start();
+    return () => animation.stop();
   }, [delay, progress]);
   const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] });
-  return <Animated.View style={{ opacity: progress, transform: [{ translateY }] }}>{children}</Animated.View>;
+  const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.985, 1] });
+  return <Animated.View style={{ opacity: progress, transform: [{ translateY }, { scale }] }}>{children}</Animated.View>;
 }
 
-export function MotionPressable({
-  children,
-  onPress,
-  style,
-}: {
-  children: ReactNode;
-  onPress?: () => void;
-  style?: any;
-}) {
+export function MotionPressable({ children, onPress, style }: { children: ReactNode; onPress?: () => void; style?: any }) {
   const scale = useRef(new Animated.Value(1)).current;
-  const press = (toValue: number) => Animated.spring(scale, { toValue, useNativeDriver: true, speed: 28, bounciness: 5 }).start();
-  return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={() => press(0.975)}
-      onPressOut={() => press(1)}
-      accessibilityRole="button"
-    >
-      <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
-    </Pressable>
-  );
+  const press = (toValue: number) => Animated.spring(scale, { toValue, useNativeDriver: true, speed: 32, bounciness: 3 }).start();
+  return <Pressable onPress={onPress} onPressIn={() => press(0.982)} onPressOut={() => press(1)} accessibilityRole="button"><Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View></Pressable>;
 }
 
 export function OrbitBackdrop() {
   const drift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.loop(
-      Animated.timing(drift, {
-        toValue: 1,
-        duration: 12000,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: true,
-      }),
-    ).start();
+    const loop = Animated.loop(Animated.timing(drift, { toValue: 1, duration: 14000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }));
+    loop.start();
+    return () => loop.stop();
   }, [drift]);
-  const translateX = drift.interpolate({ inputRange: [0, 0.5, 1], outputRange: [-18, 16, -18] });
-  const translateY = drift.interpolate({ inputRange: [0, 0.5, 1], outputRange: [10, -14, 10] });
+  const translateX = drift.interpolate({ inputRange: [0, 0.5, 1], outputRange: [-16, 14, -16] });
+  const translateY = drift.interpolate({ inputRange: [0, 0.5, 1], outputRange: [8, -12, 8] });
+  const rotate = drift.interpolate({ inputRange: [0, 0.5, 1], outputRange: ["-4deg", "4deg", "-4deg"] });
   return (
-    <Animated.View pointerEvents="none" style={{ position: "absolute", right: -74, top: -94, width: 245, height: 245, transform: [{ translateX }, { translateY }] }}>
-      <View style={{ position: "absolute", inset: 0, borderRadius: 130, borderWidth: 1, borderColor: "rgba(157,190,255,0.30)" }} />
-      <View style={{ position: "absolute", inset: 24, borderRadius: 110, borderWidth: 1, borderColor: "rgba(157,190,255,0.22)" }} />
-      <View style={{ position: "absolute", inset: 50, borderRadius: 90, borderWidth: 1, borderColor: "rgba(157,190,255,0.16)" }} />
-      <View style={{ position: "absolute", width: 88, height: 88, right: 62, top: 58, borderRadius: 50, backgroundColor: "rgba(31,94,255,0.20)" }} />
+    <Animated.View pointerEvents="none" style={{ position: "absolute", right: -82, top: -108, width: 270, height: 270, transform: [{ translateX }, { translateY }, { rotate }] }}>
+      {[0, 1, 2, 3].map((ring) => (
+        <View key={ring} style={{ position: "absolute", inset: ring * 25, borderRadius: 150, borderWidth: 1, borderColor: "rgba(157,190,255," + (0.26 - ring * 0.045) + ")" }} />
+      ))}
+      <View style={{ position: "absolute", width: 94, height: 94, right: 72, top: 78, borderRadius: 50, backgroundColor: "rgba(31,94,255,0.18)" }} />
+      <View style={{ position: "absolute", width: 7, height: 7, right: 39, top: 74, borderRadius: 5, backgroundColor: "#9DBEFF" }} />
     </Animated.View>
   );
 }
 
 export function LiveRibbon({ label = "CIVIC PULSE", detail = "Official-source signals" }: { label?: string; detail?: string }) {
-  const pulse = useRef(new Animated.Value(0.35)).current;
+  const pulse = useRef(new Animated.Value(0.45)).current;
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.35, duration: 900, useNativeDriver: true }),
-      ]),
-    ).start();
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0.45, duration: 1100, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
   }, [pulse]);
-  return (
-    <View style={{ height: 38, borderRadius: 19, borderWidth: 1, borderColor: "#DDE6E4", backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", paddingHorizontal: 12 }}>
-      <Animated.View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#237A4B", opacity: pulse }} />
-      <View style={{ marginLeft: 8, flex: 1 }}>
-        <Animated.Text style={{ fontSize: 9, fontWeight: "800", letterSpacing: 1, color: "#176A3D" }}>{label}</Animated.Text>
-      </View>
-      <Animated.Text style={{ fontSize: 9, color: "#718092" }}>{detail}</Animated.Text>
-    </View>
-  );
+  return <View style={{ height: 38, borderRadius: 19, borderWidth: 1, borderColor: "#DDE6E4", backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", paddingHorizontal: 12 }}>
+    <Animated.View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#237A4B", opacity: pulse }} />
+    <View style={{ marginLeft: 8, flex: 1 }}><Animated.Text style={{ fontSize: 9, fontWeight: "800", letterSpacing: 1, color: "#176A3D" }}>{label}</Animated.Text></View>
+    <Animated.Text style={{ fontSize: 9, color: "#718092" }}>{detail}</Animated.Text>
+  </View>;
+}
+
+export function SignalBeacon({ active = true }: { active?: boolean }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!active) return;
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(scale, { toValue: 1.18, duration: 1200, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [active, scale]);
+  return <Animated.View style={{ width: 10, height: 10, borderRadius: 6, backgroundColor: "#237A4B", transform: [{ scale }], shadowColor: "#237A4B", shadowOpacity: 0.35, shadowRadius: 8, elevation: 2 }} />;
 }
