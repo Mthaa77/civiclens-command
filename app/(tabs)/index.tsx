@@ -14,7 +14,7 @@ import {
   StatusPill,
   TrustStrip,
 } from "@/components/civic-ui";
-import { LiveRibbon, MotionPressable, OrbitBackdrop, Reveal } from "@/components/premium-motion";
+import { LiveRibbon, MotionPressable, OrbitBackdrop, Reveal, SignalBeacon } from "@/components/premium-motion";
 import { ScreenContainer } from "@/components/screen-container";
 import { issueCategories } from "@/lib/civic-data";
 import { serviceStateLabel } from "@/lib/service-intelligence";
@@ -70,7 +70,7 @@ export default function HomeScreen() {
               </View>
 
               <View className="mt-5 flex-row items-center gap-2">
-                <View className="h-7 w-7 items-center justify-center rounded-full bg-white/10"><MaterialIcons name="verified-user" size={14} color="#9DBEFF" /></View>
+                <View className="h-7 w-7 items-center justify-center rounded-full bg-white/10"><SignalBeacon /></View>
                 <Text className="flex-1 text-[10px] leading-4 text-[#AFC0CD]">Official sources first · no assumed outages · your case stays private</Text>
               </View>
             </View>
@@ -87,6 +87,7 @@ export default function HomeScreen() {
 
         <Reveal delay={330}>
           <View className="mt-8">
+            <View className="mb-3 flex-row items-center"><View className="h-1.5 w-1.5 rounded-full bg-primary" /><Text className="ml-2 text-[10px] font-extrabold uppercase tracking-[1.6px] text-primary">Start with what you can see</Text><Text className="ml-auto text-[10px] text-muted">Swipe →</Text></View>
             <SectionHeader eyebrow="Fast route" title="What is happening?" action="See all" onAction={() => go("/civic-os")} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 20 }}>
               {issueCategories.slice(0, 7).map((item, index) => (
