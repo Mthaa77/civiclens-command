@@ -101,6 +101,94 @@ export function EmptyState({ icon, title, detail, action }: { icon: IconName; ti
 export function SyncBadge({ label = "Saved privately", tone = "success" }: { label?: string; tone?: "success" | "info" | "warning" }) { const colors = { success: "#237A4B", info: "#1769FF", warning: "#A96D00" } as const; return <View className="flex-row items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5"><View className="h-2 w-2 rounded-full" style={{ backgroundColor: colors[tone] }} /><Text style={{ color: colors[tone], fontFamily: "Inter_700Bold" }} className="text-[10px] uppercase tracking-[0.7px]">{label}</Text></View>; }
 export function TrustStrip({ compact = false }: { compact?: boolean }) { return <View className={compact ? "rounded-[18px] border border-[#D8E5F5] bg-[#F5F9FF] px-3 py-2.5" : "rounded-[22px] border border-[#D8E5F5] bg-[#F5F9FF] p-4"}><View className="flex-row items-center gap-2"><MaterialIcons name="verified-user" size={compact ? 15 : 18} color="#1769FF" /><Text className="flex-1 text-xs font-extrabold text-[#11243B]">Official-source-first civic information</Text></View>{!compact ? <Text className="mt-2 text-[11px] leading-4 text-[#5B7084]">Official records are labelled separately from CivicLens explanations and community signals.</Text> : null}</View>; }
 
+
+export function KnownProblemPanel({
+  loading,
+  data,
+  onOpenSource,
+}: {
+  loading: boolean;
+  data?: {
+    hasPotentialKnownProblem: boolean;
+    checkedAt: string;
+    knownProblems: Array<{ title: string; source: string; scope: string; confidence: string }>;
+  };
+  onOpenSource?: (url: string) => void;
+}) {
+  const hasMatch = Boolean(data?.hasPotentialKnownProblem);
+  const tone: StatusTone = loading ? "warning" : hasMatch ? "warning" : data ? "official" : "error";
+  const label = loading ? "CHECKING" : hasMatch ? "POSSIBLE MATCH" : data ? "NO MATCH" : "UNAVAILABLE";
+  const title = loading
+    ? "Checking official signals"
+    : hasMatch
+      ? "Something may already be on record"
+      : data
+        ? "No known problem matched"
+        : "Official check unavailable";
+  const detail = loading
+    ? "CivicLens is checking connected official information before you create a duplicate report."
+    : hasMatch
+      ? "A connected official source contains information relevant to this service. That does not prove your exact street, property or building is affected."
+      : data
+        ? "No potential known problem was detected in the connected official sources at the time of this check."
+        : "The source could not be verified right now. You can still report the problem and keep a CivicLens case.";
+  return (
+    <View className={hasMatch ? "overflow-hidden rounded-[28px] border border-[#E9D2AD] bg-[#FFF9F1]" : "overflow-hidden rounded-[28px] border border-border bg-surface"}>
+      <View className="p-5">
+        <View className="flex-row items-start">
+          <View className={hasMatch ? "h-12 w-12 items-center justify-center rounded-[16px] bg-[#FFF0D5]" : "h-12 w-12 items-center justify-center rounded-[16px] bg-[#EAF2FF]"}>
+            <MaterialIcons name={hasMatch ? "manage-search" : data ? "fact-check" : "cloud-off"} size={23} color={hasMatch ? "#A96D00" : data ? "#237A4B" : "#C94E4E"} />
+          </View>
+          <View className="ml-3 flex-1">
+            <View className="flex-row items-center">
+              <Text style={{ fontFamily: "Inter_700Bold" }} className="flex-1 text-[10px] uppercase tracking-[1.1px] text-muted">Known-problem intelligence</Text>
+              <StatusPill label={label} tone={tone} compact />
+            </View>
+            <Text style={{ fontFamily: "SpaceGrotesk_700Bold" }} className="mt-2 text-xl leading-6 tracking-[-0.3px] text-foreground">{title}</Text>
+            <Text className="mt-2 text-[12px] leading-5 text-muted">{detail}</Text>
+          </View>
+        </View>
+
+        {hasMatch && data?.knownProblems?.length ? (
+          <View className="mt-4 gap-2">
+            {data.knownProblems.slice(0, 3).map((problem) => (
+              <Pressable key={problem.title} onPress={() => onOpenSource?.(problem.source)} accessibilityRole="link" className="rounded-[20px] border border-[#EAD7BD] bg-white/80 p-4">
+                <View className="flex-row items-start">
+                  <View className="flex-1">
+                    <Text style={{ fontFamily: "Inter_700Bold" }} className="text-sm leading-5 text-foreground">{problem.title}</Text>
+                    <Text className="mt-1.5 text-[11px] leading-4 text-muted">{problem.scope}</Text>
+                  </View>
+                  <MaterialIcons name="open-in-new" size={17} color="#A96D00" />
+                </View>
+                <View className="mt-3 flex-row items-center">
+                  <StatusPill label="OFFICIAL" tone="official" compact />
+                  <Text className="ml-2 text-[10px] font-semibold text-muted">{problem.confidence.replaceAll("_", " ")}</Text>
+                  <Text className="ml-auto text-[10px] font-extrabold text-primary">View source →</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        {!loading && data ? (
+          <View className="mt-4 flex-row items-center border-t border-border pt-3">
+            <MaterialIcons name="schedule" size={14} color="#718092" />
+            <Text className="ml-2 flex-1 text-[10px] leading-4 text-muted">Checked {new Date(data.checkedAt).toLocaleString("en-ZA")}</Text>
+            <Text className="text-[10px] font-extrabold text-primary">Evidence, not certainty</Text>
+          </View>
+        ) : null}
+      </View>
+
+      {hasMatch ? (
+        <View className="flex-row items-center border-t border-[#EAD7BD] bg-[#FFF3DF] px-5 py-3.5">
+          <MaterialIcons name="info-outline" size={16} color="#A96D00" />
+          <Text className="ml-2 flex-1 text-[10px] leading-4 text-[#765A2A]">If the official source does not cover your exact location, report it anyway.</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   pressable: { borderRadius: 17 }, pressed: { opacity: 0.76, transform: [{ scale: 0.985 }] },
   cardShadow: { shadowColor: "#10202B", shadowOpacity: 0.055, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
