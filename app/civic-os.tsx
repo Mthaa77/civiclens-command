@@ -33,6 +33,7 @@ export default function CivicOSScreen() {
   const [municipalContact, setMunicipalContact] = useState<OfficialMunicipalContact | undefined>();
   const [serviceIntel, setServiceIntel] = useState<ServiceIntelligence | undefined>();
   const [knownProblems, setKnownProblems] = useState<KnownProblemIntelligence | undefined>();
+  const [knownProblemsChecked, setKnownProblemsChecked] = useState(false);
   const issue = useMemo(() => issueCategories.find((item) => item.id === selected) ?? issueCategories[0], [selected]);
   const route = RESPONSIBILITY[selected] ?? RESPONSIBILITY.streetlight;
   const lesson = lessons.find((item) => item.id === route.lessonId);
@@ -43,9 +44,10 @@ export default function CivicOSScreen() {
     let active = true;
     setServiceIntel(undefined);
     setKnownProblems(undefined);
+    setKnownProblemsChecked(false);
     fetchOfficialMunicipalContact(selectedLocation.code).then((contact) => { if (active) setMunicipalContact(contact); });
     fetchServiceIntelligence(service).then((data) => { if (active) setServiceIntel(data); });
-    fetchKnownProblems(service).then((data) => { if (active) setKnownProblems(data); });
+    fetchKnownProblems(service).then((data) => { if (active) setKnownProblems(data); }).finally(() => { if (active) setKnownProblemsChecked(true); });
     return () => { active = false; };
   }, [selectedLocation.code, service]);
 
@@ -139,7 +141,7 @@ export default function CivicOSScreen() {
 
           <View className="mt-4">
             <KnownProblemPanel
-              loading={!knownProblems && !serviceIntel}
+              loading={!knownProblemsChecked}
               data={knownProblems ? {
                 hasPotentialKnownProblem: knownProblems.hasPotentialKnownProblem,
                 checkedAt: knownProblems.checkedAt,
