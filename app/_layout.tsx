@@ -46,7 +46,15 @@ export default function RootLayout() {
             <AppErrorBoundary>
               <CivicProvider>
                 <StatusBar style="dark" />
-                <Stack screenOptions={{ headerShown: false }}>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    animation: "fade",
+                    animationDuration: 260,
+                    contentStyle: { backgroundColor: "#F4F7F6" },
+                    gestureEnabled: true,
+                  }}
+                >
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen name="directory" />
                   <Stack.Screen name="intelligence" />
