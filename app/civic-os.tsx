@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { useEffect, useMemo, useState } from "react";
 
-import { ActionButton, CivicContextBar, CivicStepper, CivicToast, IconTile, SourceBadge, SourceDrawer, StatusPill, TrustStrip } from "@/components/civic-ui";
+import { ActionButton, CivicContextBar, CivicStepper, CivicToast, IconTile, KnownProblemPanel, SourceBadge, SourceDrawer, StatusPill, TrustStrip } from "@/components/civic-ui";
 import { ScreenContainer } from "@/components/screen-container";
 import { issueCategories, lessons } from "@/lib/civic-data";
 import { useCivic } from "@/lib/civic-store";
@@ -133,56 +133,47 @@ export default function CivicOSScreen() {
         </View>
 
         <View className="mt-8">
-          <View className="flex-row items-end">
-            <View className="flex-1">
-              <Text className="text-[10px] font-extrabold uppercase tracking-[1.7px] text-primary">3 · Check</Text>
-              <Text className="mt-1 font-display text-[22px] font-extrabold text-foreground">Could this already be known?</Text>
-              <Text className="mt-1 text-xs leading-4 text-muted">Check connected official signals before creating a duplicate report.</Text>
-            </View>
-            <StatusPill label={serviceIntel ? "LIVE CHECK" : "CHECKING"} tone={serviceIntel ? "official" : "warning"} compact />
+          <Text className="text-[10px] font-extrabold uppercase tracking-[1.7px] text-primary">3 · Check</Text>
+          <Text className="mt-1 font-display text-[22px] font-extrabold text-foreground">Before you report, check the record.</Text>
+          <Text className="mt-1 text-xs leading-4 text-muted">CivicLens looks for relevant official signals first, so you can avoid duplicate reports without mistaking a broad notice for proof about your location.</Text>
+
+          <View className="mt-4">
+            <KnownProblemPanel
+              loading={!knownProblems && !serviceIntel}
+              data={knownProblems ? {
+                hasPotentialKnownProblem: knownProblems.hasPotentialKnownProblem,
+                checkedAt: knownProblems.checkedAt,
+                knownProblems: knownProblems.knownProblems,
+              } : undefined}
+              onOpenSource={(url) => Linking.openURL(url)}
+            />
           </View>
 
-          <View className="mt-4 gap-3">
-            <View className="rounded-[24px] border border-border bg-surface p-4">
-              <View className="flex-row items-center">
-                <IconTile icon="fact-check" color="#237A4B" size="small" />
-                <View className="ml-3 flex-1">
-                  <Text className="text-sm font-extrabold text-foreground">Official service notices</Text>
-                  <Text className="mt-1 text-[11px] leading-4 text-muted">{serviceIntel ? (serviceIntel.notices.length ? serviceIntel.notices.length + " relevant notice(s) detected." : "No matching notice detected.") : "Checking the connected official feed…"}</Text>
-                </View>
-                <SourceBadge label="OFFICIAL" tone="official" />
+          <View className="mt-3 rounded-[24px] border border-border bg-surface p-4">
+            <View className="flex-row items-center">
+              <IconTile icon="fact-check" color="#237A4B" size="small" />
+              <View className="ml-3 flex-1">
+                <Text className="text-sm font-extrabold text-foreground">Official service notices</Text>
+                <Text className="mt-1 text-[11px] leading-4 text-muted">{serviceIntel ? (serviceIntel.notices.length ? serviceIntel.notices.length + " relevant notice(s) detected." : "No matching notice detected.") : "Checking the connected official feed…"}</Text>
               </View>
-              {serviceIntel?.notices.slice(0, 2).map((notice) => (
-                <Pressable key={notice.title} onPress={() => Linking.openURL(notice.source)} className="mt-3 rounded-[18px] border border-border bg-background p-3">
-                  <Text className="text-xs font-extrabold leading-4 text-foreground">{notice.title}</Text>
-                  <Text className="mt-1 text-[10px] font-extrabold text-primary">Open source →</Text>
-                </Pressable>
-              ))}
-              {serviceIntel ? <Text className="mt-3 text-[10px] leading-4 text-muted">Checked {new Date(serviceIntel.checkedAt).toLocaleString("en-ZA")}. Official-source availability does not prove your street or property is affected.</Text> : null}
+              <SourceBadge label={serviceIntel?.sourceReachable ? "OFFICIAL" : "CHECKING"} tone={serviceIntel?.sourceReachable ? "official" : "needs"} />
             </View>
-
-            <View className={knownProblems?.hasPotentialKnownProblem ? "rounded-[24px] border border-[#F0D5AF] bg-[#FFF9F1] p-4" : "rounded-[24px] border border-border bg-surface p-4"}>
-              <View className="flex-row items-start">
-                <IconTile icon="manage-search" color="#A96D00" size="small" />
-                <View className="ml-3 flex-1">
-                  <View className="flex-row items-center">
-                    <Text className="flex-1 text-sm font-extrabold text-foreground">Possible known problem</Text>
-                    <StatusPill label={knownProblems?.hasPotentialKnownProblem ? "POSSIBLE MATCH" : "NO MATCH"} tone={knownProblems?.hasPotentialKnownProblem ? "warning" : "neutral"} compact />
-                  </View>
-                  <Text className="mt-1 text-[11px] leading-4 text-muted">{knownProblems?.hasPotentialKnownProblem ? "Official information may relate to this service. It is not proof that your exact location is affected." : knownProblems ? "No potential known problem was detected in the connected official sources." : "Checking official known-problem signals…"}</Text>
-                  {knownProblems?.knownProblems.slice(0, 2).map((problem) => (
-                    <Pressable key={problem.title} onPress={() => Linking.openURL(problem.source)} className="mt-3 rounded-[18px] border border-[#EAD7BD] bg-white/70 p-3">
-                      <Text className="text-xs font-extrabold text-foreground">{problem.title}</Text>
-                      <Text className="mt-1 text-[10px] leading-4 text-muted">{problem.scope}</Text>
-                      <Text className="mt-2 text-[10px] font-extrabold text-primary">Check official problem →</Text>
-                    </Pressable>
-                  ))}
+            {serviceIntel?.notices.slice(0, 2).map((notice) => (
+              <Pressable key={notice.title} onPress={() => Linking.openURL(notice.source)} className="mt-3 rounded-[18px] border border-border bg-background p-3" accessibilityRole="link">
+                <Text className="text-xs font-extrabold leading-4 text-foreground">{notice.title}</Text>
+                <View className="mt-1.5 flex-row items-center">
+                  <Text className="text-[10px] font-extrabold text-primary">Open official source</Text>
+                  <MaterialIcons name="open-in-new" size={13} color="#1F5EFF" style={{ marginLeft: 4 }} />
                 </View>
-              </View>
+              </Pressable>
+            ))}
+            <View className="mt-3 flex-row items-start border-t border-border pt-3">
+              <MaterialIcons name="verified-user" size={15} color="#237A4B" />
+              <Text className="ml-2 flex-1 text-[10px] leading-4 text-muted">{serviceIntel ? "Official-source availability tells us what is published, not whether your exact street or property is affected." : "An unavailable source means CivicLens cannot verify the official record right now."}</Text>
             </View>
           </View>
 
-          {knownProblems?.hasPotentialKnownProblem ? <View className="mt-3"><CivicToast icon="info-outline" tone="warning" message="If the official source does not cover your location, you can still report a new CivicLens case." /></View> : null}
+          <CivicToast icon={knownProblems?.hasPotentialKnownProblem ? "warning-amber" : "info-outline"} tone={knownProblems?.hasPotentialKnownProblem ? "warning" : "civic"} message={knownProblems?.hasPotentialKnownProblem ? "A possible match changes the next step: read the official notice first, then report if your exact location is not covered." : "A clean check does not mean the problem is absent. If you are experiencing it, you can still report it."} />
         </View>
 
         <View className="mt-8">
